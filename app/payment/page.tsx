@@ -212,8 +212,8 @@ export default function PaymentPage() {
     );
   }
 
-  // Show CashPayment component after order created
-  if (order && paymentMethod) {
+  // Show CashPayment component after order created (only for cash/bank_qr)
+  if (order && paymentMethod && (paymentMethod === "cash" || paymentMethod === "bank_qr")) {
     return (
       <div className="min-h-screen bg-gray-100 p-4">
         <CashPayment
