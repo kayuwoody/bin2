@@ -1,0 +1,315 @@
+"use client";
+
+import { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
+import { useCart } from "@/context/cartContext";
+import CashPayment from "@/components/CashPayment";
+
+export default function PaymentPage() {
+  const router = useRouter();
+  const { cartItems, clearCart } = useCart();
+  const [order, setOrder] = useState<any>(null);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [paymentMethod, setPaymentMethod] = useState<"cash" | "bank_qr" | "credit_card" | null>(null);
+
+  // Calculate total (using finalPrice which includes discounts)
+  const retailTotal = cartItems.reduce((sum, item) => sum + item.retailPrice * item.quantity, 0);
+  const finalTotal = cartItems.reduce((sum, item) => sum + item.finalPrice * item.quantity, 0);
+  const totalDiscount = retailTotal - finalTotal;
+  const hasDiscount = totalDiscount > 0;
+
+  // Set pending order on mount to keep customer display populated
+  useEffect(() => {
+    if (cartItems.length > 0) {
+      fetch('/api/cart/current', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          setPendingOrder: true,
+          orderId: order?.id || 'pending',
+          items: cartItems,
+        }),
+      }).catch(err => console.error('Failed to set pending order:', err));
+    }
+  }, [cartItems, order]); // Re-run when cart or order changes
+
+  // Create order when payment method is selected
+  const handlePaymentMethodSelect = async (method: "cash" | "bank_qr" | "credit_card") => {
+    setPaymentMethod(method);
+    setLoading(true);
+    setError(null);
+
+    try {
+      // Calculate total discount across all items
+      const totalDiscount = cartItems.reduce((sum, item) => {
+        if (item.discountReason) {
+          return sum + ((item.retailPrice - item.finalPrice) * item.quantity);
+        }
+        return sum;
+      }, 0);
+
+      // Create order in WooCommerce
+      const response = await fetch("/api/orders/create-with-payment", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          line_items: cartItems.map((item) => {
+            const meta_data: Array<{ key: string; value: string }> = [];
+
+            // Add discount metadata if applicable
+            if (item.discountReason) {
+              meta_data.push(
+                { key: "_discount_reason", value: item.discountReason },
+                { key: "_retail_price", value: item.retailPrice.toString() },
+                { key: "_discount_amount", value: (item.retailPrice - item.finalPrice).toString() }
+              );
+            }
+
+            // Add final price metadata (always)
+            meta_data.push({ key: "_final_price", value: item.finalPrice.toString() });
+
+            // Add bundle metadata if this is a bundle product
+            if (item.bundle) {
+              meta_data.push(
+                { key: "_is_bundle", value: "true" },
+                { key: "_bundle_display_name", value: item.name },
+                { key: "_bundle_base_product_name", value: item.bundle.baseProductName },
+                { key: "_bundle_mandatory", value: JSON.stringify(item.bundle.selectedMandatory) },
+                { key: "_bundle_optional", value: JSON.stringify(item.bundle.selectedOptional) }
+              );
+
+              // Store expanded components (already fetched at add-to-cart time)
+              if (item.components) {
+                meta_data.push(
+                  { key: "_bundle_components", value: JSON.stringify(item.components) }
+                );
+              }
+            }
+
+            return {
+              product_id: item.productId,
+              quantity: item.quantity,
+              subtotal: (item.finalPrice * item.quantity).toString(),
+              total: (item.finalPrice * item.quantity).toString(),
+              meta_data,
+            };
+          }),
+          meta_data: totalDiscount > 0 ? [
+            { key: "_total_discount", value: totalDiscount.toFixed(2) }
+          ] : [],
+          billing: {
+            first_name: "Walk-in Customer",
+            email: "pos@coffee-oasis.com.my",
+          },
+        }),
+      });
+
+      const data = await response.json();
+
+      if (!data.success) {
+        throw new Error(data.error || "Failed to create order");
+      }
+
+      setOrder(data.order);
+
+      // Set pending order so customer display stays populated during payment
+      await fetch('/api/cart/current', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          setPendingOrder: true,
+          orderId: data.order.id,
+          items: cartItems,
+        }),
+      });
+
+      // If credit card payment, redirect to Fiuu payment page
+      if (method === "credit_card") {
+        const paymentResponse = await fetch("/api/payments/initiate", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            orderID: data.order.id,
+            amount: finalTotal.toFixed(2),
+            currency: "MYR",
+            paymentMethod: "credit", // Show all payment methods on Fiuu page
+            customerName: "Coffee Oasis Customer",
+            customerEmail: "customer@coffee-oasis.com.my",
+            description: `Order #${data.order.id}`,
+          }),
+        });
+
+        const paymentData = await paymentResponse.json();
+
+        if (paymentData.success && paymentData.paymentURL) {
+          // Redirect to Fiuu payment page
+          window.location.href = paymentData.paymentURL;
+          return; // Don't continue to render below
+        } else {
+          throw new Error("Failed to generate payment URL");
+        }
+      }
+    } catch (err: any) {
+      console.error("Order creation error:", err);
+      setError(err.message);
+      setPaymentMethod(null);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handlePaymentSuccess = async () => {
+    // Clear cart locally
+    clearCart();
+
+    // Clear pending order and cart on server (broadcasts empty cart to customer display)
+    await fetch('/api/cart/current', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        cart: [], // Explicitly clear server-side cart
+        setPendingOrder: false,
+      }),
+    });
+
+    // Show success and redirect to products
+    alert(`✅ Payment confirmed! Order #${order.id} is being prepared.`);
+    router.push("/products");
+  };
+
+  const handleCancel = async () => {
+    // Clear pending order when payment is cancelled
+    await fetch('/api/cart/current', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        setPendingOrder: false,
+      }),
+    });
+
+    setOrder(null);
+    setPaymentMethod(null);
+    setError(null);
+  };
+
+  // Redirect if cart is empty
+  useEffect(() => {
+    if (cartItems.length === 0 && !order) {
+      router.push("/products");
+    }
+  }, [cartItems, order, router]);
+
+  // Loading state
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gray-100">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-gray-900 mx-auto mb-4"></div>
+          <p className="text-gray-700">Creating order...</p>
+        </div>
+      </div>
+    );
+  }
+
+  // Show CashPayment component after order created
+  if (order && paymentMethod) {
+    return (
+      <div className="min-h-screen bg-gray-100 p-4">
+        <CashPayment
+          orderID={order.id}
+          amount={finalTotal.toFixed(2)}
+          paymentMethod={paymentMethod}
+          onSuccess={handlePaymentSuccess}
+          onCancel={handleCancel}
+        />
+      </div>
+    );
+  }
+
+  // Payment method selection screen
+  return (
+    <div className="min-h-screen bg-gray-100 flex items-center justify-center p-4">
+      <div className="bg-white rounded-lg shadow-lg p-8 max-w-md w-full">
+        {/* Header */}
+        <h1 className="text-2xl font-bold text-gray-900 mb-2">Select Payment Method</h1>
+        <p className="text-gray-600 mb-6">How will the customer pay?</p>
+
+        {/* Order Summary */}
+        <div className="bg-gray-50 rounded-lg p-4 mb-6">
+          <p className="text-sm text-gray-500 mb-1">Order Total</p>
+          {hasDiscount && (
+            <p className="text-lg text-gray-400 line-through">RM {retailTotal.toFixed(2)}</p>
+          )}
+          <p className="text-3xl font-bold text-gray-900">RM {finalTotal.toFixed(2)}</p>
+          {hasDiscount && (
+            <p className="text-sm text-green-600 font-medium mt-1">
+              Saved RM {totalDiscount.toFixed(2)}
+            </p>
+          )}
+          <p className="text-sm text-gray-600 mt-2">{cartItems.length} item(s)</p>
+        </div>
+
+        {/* Error Display */}
+        {error && (
+          <div className="bg-red-50 border border-red-200 rounded-lg p-4 mb-6">
+            <p className="text-red-800 text-sm">{error}</p>
+          </div>
+        )}
+
+        {/* Payment Method Buttons */}
+        <div className="space-y-3">
+          <button
+            onClick={() => handlePaymentMethodSelect("cash")}
+            className="w-full p-4 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors flex items-center justify-between"
+          >
+            <span className="flex items-center gap-3">
+              <span className="text-2xl">💵</span>
+              <div className="text-left">
+                <p className="font-semibold">Cash Payment</p>
+                <p className="text-sm text-green-100">Accept cash and give change</p>
+              </div>
+            </span>
+            <span className="text-2xl">→</span>
+          </button>
+
+          <button
+            onClick={() => handlePaymentMethodSelect("bank_qr")}
+            className="w-full p-4 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors flex items-center justify-between"
+          >
+            <span className="flex items-center gap-3">
+              <span className="text-2xl">📱</span>
+              <div className="text-left">
+                <p className="font-semibold">Bank QR Code</p>
+                <p className="text-sm text-blue-100">Customer scans your QR</p>
+              </div>
+            </span>
+            <span className="text-2xl">→</span>
+          </button>
+
+          <button
+            onClick={() => handlePaymentMethodSelect("credit_card")}
+            className="w-full p-4 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors flex items-center justify-between"
+          >
+            <span className="flex items-center gap-3">
+              <span className="text-2xl">💳</span>
+              <div className="text-left">
+                <p className="font-semibold">Credit / Debit Card</p>
+                <p className="text-sm text-purple-100">Pay with card or e-wallet</p>
+              </div>
+            </span>
+            <span className="text-2xl">→</span>
+          </button>
+        </div>
+
+        {/* Back Button */}
+        <button
+          onClick={() => router.push("/checkout")}
+          className="w-full mt-6 px-4 py-2 text-gray-600 hover:text-gray-800 transition-colors"
+        >
+          ← Back to Cart
+        </button>
+      </div>
+    </div>
+  );
+}
