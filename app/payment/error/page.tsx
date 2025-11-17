@@ -4,6 +4,9 @@ import { useEffect, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import Link from "next/link";
 
+// Prevent static generation for this page
+export const dynamic = 'force-dynamic';
+
 export default function PaymentErrorPage() {
   const searchParams = useSearchParams();
   const [orderID, setOrderID] = useState<string>("");
