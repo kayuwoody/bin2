@@ -72,7 +72,12 @@ export default function OrdersPage() {
   // Fetch all orders; server will use userId cookie if present, otherwise guestId fallback
   useEffect(() => {
     setLoading(true);
-    fetch('/api/orders')
+
+    // Get guestId from localStorage for guest users
+    const guestId = localStorage.getItem('guestId');
+    const url = guestId ? `/api/orders?guestId=${guestId}` : '/api/orders';
+
+    fetch(url)
       .then((res) => res.json())
       .then((data) => {
         setOrders(Array.isArray(data) ? data : []);

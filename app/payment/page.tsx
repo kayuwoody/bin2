@@ -73,6 +73,13 @@ export default function PaymentPage() {
     setError(null);
 
     try {
+      // Get or create guestId for guest users
+      let guestId = localStorage.getItem('guestId');
+      if (!guestId) {
+        guestId = crypto.randomUUID();
+        localStorage.setItem('guestId', guestId);
+      }
+
       // Calculate total discount across all items
       const totalDiscount = cartItems.reduce((sum, item) => {
         if (item.discountReason) {
@@ -86,6 +93,7 @@ export default function PaymentPage() {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
+          guestId, // Include guestId for guest order tracking
           line_items: cartItems.map((item) => {
             const meta_data: Array<{ key: string; value: string }> = [];
 
