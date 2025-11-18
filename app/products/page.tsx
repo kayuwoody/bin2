@@ -30,7 +30,7 @@ const ProductListPage: React.FC = () => {
   const [modalData, setModalData] = useState<RecipeData | null>(null);
   const [loadingRecipe, setLoadingRecipe] = useState(false);
   const [selectedCategory, setSelectedCategory] = useState<string>("all");
-  const [showInStockOnly, setShowInStockOnly] = useState(false);
+  const [showOutOfStock, setShowOutOfStock] = useState(false);
   const { addToCart, cartItems } = useCart();
 
   // Check if staff is logged in
@@ -203,8 +203,8 @@ const ProductListPage: React.FC = () => {
       const categoryMatch = selectedCategory === "all" ||
         (product.categories || []).some(cat => cat.slug === selectedCategory);
 
-      // Stock filter
-      const stockMatch = !showInStockOnly ||
+      // Stock filter - hide out of stock by default, show when checkbox is checked
+      const stockMatch = showOutOfStock ||
         (product.manage_stock ? (product.stock_quantity ?? 0) > 0 : true);
 
       return categoryMatch && stockMatch;
@@ -286,11 +286,11 @@ const ProductListPage: React.FC = () => {
         <label className="flex items-center gap-2 cursor-pointer">
           <input
             type="checkbox"
-            checked={showInStockOnly}
-            onChange={(e) => setShowInStockOnly(e.target.checked)}
+            checked={showOutOfStock}
+            onChange={(e) => setShowOutOfStock(e.target.checked)}
             className="w-4 h-4 text-green-600 border-gray-300 rounded focus:ring-green-500"
           />
-          <span className="text-sm font-medium text-gray-700">In Stock Only</span>
+          <span className="text-sm font-medium text-gray-700">Show Out of Stock</span>
         </label>
 
         {/* Results count */}
@@ -318,20 +318,6 @@ const ProductListPage: React.FC = () => {
                 alt={product.name}
                 className="absolute inset-0 w-full h-full object-cover"
               />
-              {/* Stock status badge */}
-              {product.manage_stock && (
-                <div className="absolute top-2 right-2">
-                  {(product.stock_quantity ?? 0) === 0 ? (
-                    <span className="px-2 py-1 bg-red-600 text-white text-xs font-semibold rounded">
-                      Out of Stock
-                    </span>
-                  ) : (product.stock_quantity ?? 0) < 10 ? (
-                    <span className="px-2 py-1 bg-yellow-500 text-white text-xs font-semibold rounded">
-                      Low Stock ({product.stock_quantity})
-                    </span>
-                  ) : null}
-                </div>
-              )}
             </div>
 
             {/* Product info */}
@@ -339,18 +325,8 @@ const ProductListPage: React.FC = () => {
               <h3 className="font-semibold text-gray-900 mb-1 line-clamp-1">{product.name}</h3>
               {/* Category tag */}
               {product.categories && product.categories.length > 0 && (
-                <p className="text-xs text-gray-500 mb-1">
+                <p className="text-xs text-gray-500 mb-2">
                   {product.categories[0].name}
-                </p>
-              )}
-              {/* Stock quantity - only show for products that track inventory */}
-              {product.manage_stock && product.stock_quantity !== null && product.stock_quantity !== undefined && (
-                <p className="text-xs text-gray-600 mb-1">
-                  Stock: <span className={`font-semibold ${
-                    product.stock_quantity === 0 ? 'text-red-600' :
-                    product.stock_quantity < 10 ? 'text-yellow-600' :
-                    'text-green-600'
-                  }`}>{product.stock_quantity}</span>
                 </p>
               )}
               <p className="text-lg font-bold text-green-700">RM {parseFloat(product.price).toFixed(2)}</p>
