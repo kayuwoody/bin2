@@ -89,17 +89,23 @@ async function fetchComboData(): Promise<ComboData | null> {
 
     console.log('🔄 Fetching combo data from Blob storage...');
 
-    // List blobs to find combos.json
+    // List blobs to find combos file (may have hash in filename)
     const { blobs } = await list({
       token: process.env.bin2_READ_WRITE_TOKEN,
+      prefix: 'combos', // Find any file starting with "combos"
     });
 
-    const comboBlob = blobs.find(blob => blob.pathname === 'combos.json');
-
-    if (!comboBlob) {
-      console.warn('⚠️ combos.json not found in Blob storage');
+    if (blobs.length === 0) {
+      console.warn('⚠️ No combos file found in Blob storage');
       return null;
     }
+
+    // Get the most recently uploaded combos file
+    const comboBlob = blobs.sort((a, b) =>
+      new Date(b.uploadedAt).getTime() - new Date(a.uploadedAt).getTime()
+    )[0];
+
+    console.log(`📥 Found blob: ${comboBlob.pathname} (uploaded: ${comboBlob.uploadedAt})`);
 
     // Fetch the JSON file
     const response = await fetch(comboBlob.url);
