@@ -209,7 +209,7 @@ export async function getProductById(id: string): Promise<Product | null> {
 
   // If still not found, search by ID field
   if (!product) {
-    product = Object.values(data.products).find(p => p.id === id);
+    product = Object.values(data.products).find(p => p.id === id) || null;
     if (product) {
       console.log(`✅ Found product by searching id field: ${product.name} (${id})`);
     }
