@@ -11,6 +11,7 @@
   "dependencies": {
     "@woocommerce/woocommerce-rest-api": "^1.0.1",
     "axios": "^1.6.8",
+    "better-sqlite3": "^9.6.0",
     "lucide-react": "^0.511.0",
     "next": "^14.2.0",
     "react": "^18.2.0",
@@ -20,8 +21,10 @@
     "uuid": "^11.1.0"
   },
   "devDependencies": {
+    "@types/better-sqlite3": "^7.6.11",
     "@types/node": "22.15.29",
     "@types/react": "19.1.6",
+    "@types/uuid": "^10.0.0",
     "autoprefixer": "^10.4.14",
     "postcss": "^8.4.21",
     "tailwindcss": "^3.4.1",
