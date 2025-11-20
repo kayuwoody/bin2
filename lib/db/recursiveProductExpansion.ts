@@ -378,9 +378,21 @@ export async function getSelectedComponents(
       continue;
     }
 
+    console.log(`  🔗 Looking up linked product: ID="${item.linkedProductId}" expectedName="${item.linkedProductName}"`);
+
     const linkedProd = await getProductById(item.linkedProductId);
     if (!linkedProd) {
+      console.error(`  ❌ Linked product not found! ID="${item.linkedProductId}" expectedName="${item.linkedProductName}"`);
       continue;
+    }
+
+    console.log(`  ✅ Found product: "${linkedProd.name}" (ID=${linkedProd.id}, WC ID=${linkedProd.wcId})`);
+
+    // CRITICAL: Check if returned product matches expected name
+    if (item.linkedProductName && linkedProd.name !== item.linkedProductName) {
+      console.error(`  🚨 MISMATCH! Expected "${item.linkedProductName}" but got "${linkedProd.name}"`);
+      console.error(`     Looking up ID: ${item.linkedProductId}`);
+      console.error(`     Returned product ID: ${linkedProd.id}, WC ID: ${linkedProd.wcId}`);
     }
 
     const componentQuantity = item.quantity * quantity;
