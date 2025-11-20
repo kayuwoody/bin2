@@ -29,7 +29,7 @@ export async function GET(
     console.log(`\n🔍 Product: ${product.name} (${product.id})`);
 
     // Flatten ALL choices from ALL nesting levels
-    const { xorGroups, optionalItems } = flattenAllChoices(product.id);
+    const { xorGroups, optionalItems } = await flattenAllChoices(product.id);
 
     // Get mandatory individual items at root level (for display purposes)
     // BUT exclude any that have nested XOR groups (those are already shown in the flattened groups)
@@ -37,10 +37,10 @@ export async function GET(
 
     // Find which products have nested XOR groups
     const productsWithNestedXORs = new Set<string>();
-    rootRecipe.forEach(item => {
+    for (const item of rootRecipe) {
       if (item.itemType === 'product' && item.linkedProductId && !item.selectionGroup && !item.isOptional) {
         // Check if this linked product has XOR groups
-        const nestedResult = flattenAllChoices(item.linkedProductId, 1);
+        const nestedResult = await flattenAllChoices(item.linkedProductId, 1);
         if (nestedResult.xorGroups.length > 0) {
           productsWithNestedXORs.add(item.linkedProductId);
         }
