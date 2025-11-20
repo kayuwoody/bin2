@@ -1,6 +1,5 @@
 import { NextResponse } from 'next/server';
-import { getProduct, getProductByWcId } from '@/lib/db/productService';
-import { getProductRecipe } from '@/lib/db/recipeService';
+import { getProductByWcId, getProductRecipe } from '@/lib/data/productDataLoader';
 import { flattenAllChoices } from '@/lib/db/recursiveProductExpansion';
 import { handleApiError, notFoundError } from '@/lib/api/error-handler';
 
@@ -21,7 +20,7 @@ export async function GET(
     const { productId } = params;
 
     // Find product by WooCommerce ID
-    const product = getProductByWcId(Number(productId));
+    const product = await getProductByWcId(Number(productId));
 
     if (!product) {
       return notFoundError('Product not found', '/api/products/[productId]/recipe');
@@ -34,7 +33,7 @@ export async function GET(
 
     // Get mandatory individual items at root level (for display purposes)
     // BUT exclude any that have nested XOR groups (those are already shown in the flattened groups)
-    const rootRecipe = getProductRecipe(product.id);
+    const rootRecipe = await getProductRecipe(product.id);
 
     // Find which products have nested XOR groups
     const productsWithNestedXORs = new Set<string>();
