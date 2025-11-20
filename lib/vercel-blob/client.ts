@@ -63,9 +63,9 @@ export interface ProductRecipeItem {
 }
 
 export interface ComboData {
-  products: Record<string, Product>;
+  products: Record<string, Product>; // Can be keyed by internal ID or WC ID
   materials: Record<string, Material>;
-  recipes: Record<string, ProductRecipeItem[]>;
+  recipes: Record<string, ProductRecipeItem[]> | ProductRecipeItem[]; // Support both formats
   lastSync: string;
   version: string;
 }
@@ -124,6 +124,23 @@ async function fetchComboData(): Promise<ComboData | null> {
         keys: Object.keys(data)
       });
       return null;
+    }
+
+    // Normalize recipes: convert array to object grouped by productId
+    if (Array.isArray(data.recipes)) {
+      console.log('🔄 Converting recipes from array to grouped object...');
+      const recipesArray = data.recipes as ProductRecipeItem[];
+      const recipesGrouped: Record<string, ProductRecipeItem[]> = {};
+
+      recipesArray.forEach(item => {
+        if (!recipesGrouped[item.productId]) {
+          recipesGrouped[item.productId] = [];
+        }
+        recipesGrouped[item.productId].push(item);
+      });
+
+      data.recipes = recipesGrouped;
+      console.log(`✅ Converted ${recipesArray.length} recipe items into ${Object.keys(recipesGrouped).length} product recipes`);
     }
 
     // Update cache
@@ -196,16 +213,30 @@ export async function getProductRecipe(productId: string): Promise<ProductRecipe
     return [];
   }
 
-  const recipe = data.recipes[productId] || [];
+  const recipes = data.recipes as Record<string, ProductRecipeItem[]>;
 
-  if (recipe.length === 0) {
-    console.warn(`⚠️ No recipe found for product ${productId}. Available recipe product IDs:`,
-      Object.keys(data.recipes)
-    );
-  } else {
-    console.log(`✅ Found recipe for product ${productId}: ${recipe.length} items`);
+  // Try direct lookup by internal ID first
+  let recipe = recipes[productId];
+
+  // If not found, try to find by WC ID
+  if (!recipe) {
+    const product = Object.values(data.products).find(p => p.id === productId);
+    if (product && product.wcId) {
+      recipe = recipes[product.wcId.toString()];
+      if (recipe) {
+        console.log(`✅ Found recipe using WC ID ${product.wcId} (looked up by internal ID ${productId})`);
+      }
+    }
   }
 
+  if (!recipe || recipe.length === 0) {
+    console.warn(`⚠️ No recipe found for product ${productId}.`);
+    console.warn(`   Available recipe keys:`, Object.keys(recipes).slice(0, 10));
+    console.warn(`   Product exists:`, !!Object.values(data.products).find(p => p.id === productId));
+    return [];
+  }
+
+  console.log(`✅ Found recipe for product ${productId}: ${recipe.length} items`);
   return recipe;
 }
 
