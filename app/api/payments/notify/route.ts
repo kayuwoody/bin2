@@ -3,6 +3,19 @@ import { getFiuuService } from '@/lib/fiuuService';
 import { updateWooOrder } from '@/lib/orderService';
 
 /**
+ * GET /api/payments/notify
+ * URL verification endpoint - allows Fiuu to verify the webhook URL exists
+ */
+export async function GET() {
+  return NextResponse.json({
+    endpoint: 'Fiuu Payment Notification Webhook',
+    status: 'ready',
+    methods: ['POST'],
+    note: 'This endpoint accepts POST requests from Fiuu payment gateway for payment notifications',
+  });
+}
+
+/**
  * POST /api/payments/notify
  * Webhook endpoint - called by Fiuu when payment is completed
  *
