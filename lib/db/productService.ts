@@ -22,6 +22,7 @@ export interface Product {
  * Get product by ID
  */
 export function getProduct(id: string): Product | undefined {
+  if (!db) return undefined;
   const stmt = db.prepare('SELECT * FROM Product WHERE id = ?');
   return stmt.get(id) as Product | undefined;
 }
@@ -30,6 +31,7 @@ export function getProduct(id: string): Product | undefined {
  * Get product by WooCommerce ID
  */
 export function getProductByWcId(wcId: number): Product | undefined {
+  if (!db) return undefined;
   const stmt = db.prepare('SELECT * FROM Product WHERE wcId = ?');
   return stmt.get(wcId) as Product | undefined;
 }
