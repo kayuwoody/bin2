@@ -194,13 +194,13 @@ export async function getProductById(id: string): Promise<Product | null> {
   }
 
   // Try direct lookup by internal ID first
-  let product = data.products[id];
+  let product: Product | null = data.products[id] || null;
 
   // If not found, try as WC ID (in case products are keyed by WC ID)
   if (!product) {
     const wcId = parseInt(id);
     if (!isNaN(wcId)) {
-      product = data.products[wcId.toString()];
+      product = data.products[wcId.toString()] || null;
       if (product) {
         console.log(`✅ Found product using WC ID key ${wcId} (looked up by ID ${id})`);
       }
