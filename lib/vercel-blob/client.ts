@@ -188,9 +188,44 @@ export async function getProductByWcId(wcId: number): Promise<Product | null> {
  */
 export async function getProductById(id: string): Promise<Product | null> {
   const data = await fetchComboData();
-  if (!data) return null;
+  if (!data) {
+    console.warn(`⚠️ No combo data available when looking for product ID ${id}`);
+    return null;
+  }
 
-  return data.products[id] || null;
+  // Try direct lookup by internal ID first
+  let product = data.products[id];
+
+  // If not found, try as WC ID (in case products are keyed by WC ID)
+  if (!product) {
+    const wcId = parseInt(id);
+    if (!isNaN(wcId)) {
+      product = data.products[wcId.toString()];
+      if (product) {
+        console.log(`✅ Found product using WC ID key ${wcId} (looked up by ID ${id})`);
+      }
+    }
+  }
+
+  // If still not found, search by ID field
+  if (!product) {
+    product = Object.values(data.products).find(p => p.id === id);
+    if (product) {
+      console.log(`✅ Found product by searching id field: ${product.name} (${id})`);
+    }
+  }
+
+  if (!product) {
+    console.warn(`⚠️ Product not found for ID ${id}.`);
+    console.warn(`   Available product IDs (first 10):`, Object.keys(data.products).slice(0, 10));
+    console.warn(`   Available product.id values (first 10):`,
+      Object.values(data.products).slice(0, 10).map(p => p.id)
+    );
+  } else {
+    console.log(`✅ Found product: ${product.name} (internal ID: ${product.id})`);
+  }
+
+  return product || null;
 }
 
 /**

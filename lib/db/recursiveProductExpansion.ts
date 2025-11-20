@@ -82,6 +82,7 @@ export async function flattenAllChoices(
   const indent = '  '.repeat(depth);
 
   console.log(`${indent}🔍 Flattening choices for: ${product.name} (depth ${depth})`);
+  console.log(`${indent}   Recipe has ${recipe.length} items`);
 
   // Group recipe items by selection group
   const groupedBySelection: Record<string, ProductRecipeItem[]> = {};
@@ -89,6 +90,8 @@ export async function flattenAllChoices(
   const optional: ProductRecipeItem[] = [];
 
   recipe.forEach((item) => {
+    console.log(`${indent}   Item: ${item.linkedProductName || item.materialName} | isOptional=${item.isOptional} | selectionGroup=${item.selectionGroup}`);
+
     if (item.isOptional) {
       optional.push(item);
     } else if (item.selectionGroup) {
@@ -100,6 +103,8 @@ export async function flattenAllChoices(
       mandatoryIndividual.push(item);
     }
   });
+
+  console.log(`${indent}   Grouped: ${Object.keys(groupedBySelection).length} XOR groups, ${optional.length} optional, ${mandatoryIndividual.length} mandatory`);
 
   // Process XOR groups at this level
   for (const [groupName, items] of Object.entries(groupedBySelection)) {
