@@ -25,7 +25,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Get selected components based on user's choices
-    const components = getSelectedComponents(
+    const components = await getSelectedComponents(
       product.id,
       bundleSelection,
       quantity || 1

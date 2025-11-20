@@ -1,5 +1,5 @@
-import { getProduct, getProductByWcId } from './productService';
-import { getProductRecipe, ProductRecipeItem } from './recipeService';
+import { getProductById, getProductByWcId, getProductRecipe } from '../data/productDataLoader';
+import type { ProductRecipeItem } from './recipeService';
 
 /**
  * Represents a flattened XOR group from any nesting level
@@ -54,16 +54,16 @@ export interface UnifiedBundleSelection {
  * @param parentPath - Path of parent products (internal)
  * @returns All XOR groups and optional items from all nesting levels
  */
-export function flattenAllChoices(
+export async function flattenAllChoices(
   productId: string,
   depth: number = 0,
   parentPath: string = '',
   parentProductId?: string,
   parentProductName?: string
-): {
+): Promise<{
   xorGroups: FlattenedXORGroup[];
   optionalItems: FlattenedOptionalItem[];
-} {
+}> {
   const xorGroups: FlattenedXORGroup[] = [];
   const optionalItems: FlattenedOptionalItem[] = [];
 
@@ -73,12 +73,12 @@ export function flattenAllChoices(
     return { xorGroups, optionalItems };
   }
 
-  const product = getProduct(productId);
+  const product = await getProductById(productId);
   if (!product) {
     return { xorGroups, optionalItems };
   }
 
-  const recipe = getProductRecipe(productId);
+  const recipe = await getProductRecipe(productId);
   const indent = '  '.repeat(depth);
 
   console.log(`${indent}🔍 Flattening choices for: ${product.name} (depth ${depth})`);
@@ -102,7 +102,7 @@ export function flattenAllChoices(
   });
 
   // Process XOR groups at this level
-  Object.entries(groupedBySelection).forEach(([groupName, items]) => {
+  for (const [groupName, items] of Object.entries(groupedBySelection)) {
     // Generate unique key for this group
     const uniqueKey = depth === 0 ? `root:${groupName}` : `${product.id}:${groupName}`;
 
@@ -113,31 +113,36 @@ export function flattenAllChoices(
 
     console.log(`${indent}  ✓ Found XOR group: ${uniqueKey} (${items.length} items)`);
 
+    // Fetch linked products for XOR items
+    const xorItems = await Promise.all(
+      items
+        .filter(item => item.itemType === 'product' && item.linkedProductId)
+        .map(async (item) => {
+          const linkedProd = await getProductById(item.linkedProductId!);
+          return {
+            id: item.linkedProductId!,
+            name: item.linkedProductName || linkedProd?.name || 'Unknown',
+            basePrice: linkedProd?.basePrice || 0,
+          };
+        })
+    );
+
     xorGroups.push({
       uniqueKey,
       displayName,
       parentProductId: depth === 0 ? undefined : parentProductId,
       parentProductName: depth === 0 ? undefined : parentProductName,
       groupName,
-      items: items
-        .filter(item => item.itemType === 'product' && item.linkedProductId)
-        .map(item => {
-          const linkedProd = getProduct(item.linkedProductId!);
-          return {
-            id: item.linkedProductId!,
-            name: item.linkedProductName || linkedProd?.name || 'Unknown',
-            basePrice: linkedProd?.basePrice || 0,
-          };
-        }),
+      items: xorItems,
     });
-  });
+  }
 
   // Process optional items at this level (only if they're products)
-  optional.forEach(item => {
+  for (const item of optional) {
     if (item.itemType === 'product' && item.linkedProductId) {
       console.log(`${indent}  ⊕ Found optional: ${item.linkedProductName}`);
 
-      const linkedProd = getProduct(item.linkedProductId);
+      const linkedProd = await getProductById(item.linkedProductId);
       optionalItems.push({
         id: item.linkedProductId,
         name: item.linkedProductName || linkedProd?.name || 'Unknown',
@@ -146,14 +151,14 @@ export function flattenAllChoices(
         parentProductName: depth === 0 ? undefined : product.name,
       });
     }
-  });
+  }
 
   // Recursively process mandatory individual linked products
-  mandatoryIndividual.forEach(item => {
+  for (const item of mandatoryIndividual) {
     if (item.itemType === 'product' && item.linkedProductId) {
       console.log(`${indent}  🔗 Recursing into: ${item.linkedProductName}`);
 
-      const nested = flattenAllChoices(
+      const nested = await flattenAllChoices(
         item.linkedProductId,
         depth + 1,
         parentPath ? `${parentPath} > ${product.name}` : product.name,
@@ -164,12 +169,12 @@ export function flattenAllChoices(
       xorGroups.push(...nested.xorGroups);
       optionalItems.push(...nested.optionalItems);
     }
-  });
+  }
 
   // Also recurse into XOR group items (they might have nested choices too)
-  Object.values(groupedBySelection).flat().forEach(item => {
+  for (const item of Object.values(groupedBySelection).flat()) {
     if (item.itemType === 'product' && item.linkedProductId) {
-      const nested = flattenAllChoices(
+      const nested = await flattenAllChoices(
         item.linkedProductId,
         depth + 1,
         parentPath ? `${parentPath} > ${product.name}` : product.name,
@@ -180,7 +185,7 @@ export function flattenAllChoices(
       xorGroups.push(...nested.xorGroups);
       optionalItems.push(...nested.optionalItems);
     }
-  });
+  }
 
   if (depth === 0) {
     console.log(`\n📊 Total flattened choices for ${product.name}:`);
@@ -196,13 +201,13 @@ export function flattenAllChoices(
  * Recursively calculate price based on unified selections
  * Traverses the product tree and sums up basePrices of selected components
  */
-export function calculatePriceWithSelections(
+export async function calculatePriceWithSelections(
   productId: string,
   selections: UnifiedBundleSelection,
   quantity: number = 1,
   depth: number = 0
-): number {
-  const product = getProduct(productId);
+): Promise<number> {
+  const product = await getProductById(productId);
   if (!product) return 0;
 
   // Check for combo price override (only at root level)
@@ -210,7 +215,7 @@ export function calculatePriceWithSelections(
     return product.comboPriceOverride * quantity;
   }
 
-  const recipe = getProductRecipe(productId);
+  const recipe = await getProductRecipe(productId);
 
   // If no recipe, this is a simple product - use its base price
   if (recipe.length === 0) {
@@ -224,11 +229,11 @@ export function calculatePriceWithSelections(
   // For non-combo products, start with base price. For combos, only sum components.
   let totalPrice = isCombo ? 0 : (product.basePrice * quantity);
 
-  recipe.forEach(item => {
+  for (const item of recipe) {
     // Skip optional items unless selected
     if (item.isOptional) {
       if (!selections.selectedOptional.includes(item.linkedProductId || '')) {
-        return;
+        continue;
       }
     }
 
@@ -239,21 +244,21 @@ export function calculatePriceWithSelections(
 
       // Skip if this item wasn't selected in its group
       if (selectedId !== item.linkedProductId) {
-        return;
+        continue;
       }
     }
 
     // Add linked product's price and recurse if needed
     if (item.itemType === 'product' && item.linkedProductId) {
-      const linkedProduct = getProduct(item.linkedProductId);
+      const linkedProduct = await getProductById(item.linkedProductId);
       if (linkedProduct) {
         // Add this product's base price
         totalPrice += linkedProduct.basePrice * item.quantity * quantity;
 
         // Recurse to get nested component prices (if any)
-        const linkedRecipe = getProductRecipe(item.linkedProductId);
+        const linkedRecipe = await getProductRecipe(item.linkedProductId);
         if (linkedRecipe.length > 0) {
-          const nestedPrice = calculatePriceWithSelections(
+          const nestedPrice = await calculatePriceWithSelections(
             item.linkedProductId,
             selections,
             item.quantity * quantity,
@@ -266,7 +271,7 @@ export function calculatePriceWithSelections(
         }
       }
     }
-  });
+  }
 
   return totalPrice;
 }
@@ -274,23 +279,23 @@ export function calculatePriceWithSelections(
 /**
  * Recursively calculate COGS based on unified selections
  */
-export function calculateCOGSWithSelections(
+export async function calculateCOGSWithSelections(
   productId: string,
   selections: UnifiedBundleSelection,
   quantity: number = 1,
   depth: number = 0
-): number {
-  const product = getProduct(productId);
+): Promise<number> {
+  const product = await getProductById(productId);
   if (!product) return 0;
 
-  const recipe = getProductRecipe(productId);
+  const recipe = await getProductRecipe(productId);
   let totalCOGS = (product.supplierCost || 0) * quantity;
 
-  recipe.forEach(item => {
+  for (const item of recipe) {
     // Skip optional items unless selected
     if (item.isOptional) {
       if (!selections.selectedOptional.includes(item.linkedProductId || '')) {
-        return;
+        continue;
       }
     }
 
@@ -300,13 +305,13 @@ export function calculateCOGSWithSelections(
       const selectedId = selections.selectedMandatory[uniqueKey];
 
       if (selectedId !== item.linkedProductId) {
-        return;
+        continue;
       }
     }
 
     // Recurse for linked products
     if (item.itemType === 'product' && item.linkedProductId) {
-      const nestedCOGS = calculateCOGSWithSelections(
+      const nestedCOGS = await calculateCOGSWithSelections(
         item.linkedProductId,
         selections,
         item.quantity * quantity,
@@ -318,7 +323,7 @@ export function calculateCOGSWithSelections(
       // Add material costs
       totalCOGS += (item.calculatedCost || 0) * quantity;
     }
-  });
+  }
 
   return totalCOGS;
 }
@@ -330,26 +335,26 @@ export function calculateCOGSWithSelections(
  * Example: If "Wake up Wonder" → "Americano" → "Hot Americano" (selected),
  * this returns "Hot Americano", not "Americano"
  */
-export function getSelectedComponents(
+export async function getSelectedComponents(
   productId: string,
   selections: UnifiedBundleSelection,
   quantity: number = 1,
   depth: number = 0
-): Array<{ productId: string; productName: string; quantity: number; category: string }> {
-  const product = getProduct(productId);
+): Promise<Array<{ productId: string; productName: string; quantity: number; category: string }>> {
+  const product = await getProductById(productId);
   if (!product) return [];
 
-  const recipe = getProductRecipe(productId);
+  const recipe = await getProductRecipe(productId);
   const components: Array<{ productId: string; productName: string; quantity: number; category: string }> = [];
 
   // Group recipe items to check for XOR groups
   const hasXORGroups = recipe.some(item => item.selectionGroup);
 
-  recipe.forEach(item => {
+  for (const item of recipe) {
     // Skip optional items unless selected
     if (item.isOptional) {
       if (!selections.selectedOptional.includes(item.linkedProductId || '')) {
-        return;
+        continue;
       }
     }
 
@@ -359,24 +364,24 @@ export function getSelectedComponents(
       const selectedId = selections.selectedMandatory[uniqueKey];
 
       if (selectedId !== item.linkedProductId) {
-        return; // This item wasn't selected in the XOR group
+        continue; // This item wasn't selected in the XOR group
       }
     }
 
     // Only process linked products (not materials)
     if (item.itemType !== 'product' || !item.linkedProductId) {
-      return;
+      continue;
     }
 
-    const linkedProd = getProduct(item.linkedProductId);
+    const linkedProd = await getProductById(item.linkedProductId);
     if (!linkedProd) {
-      return;
+      continue;
     }
 
     const componentQuantity = item.quantity * quantity;
 
     // Check if this linked product has XOR groups or linked products (not just materials)
-    const linkedRecipe = getProductRecipe(item.linkedProductId);
+    const linkedRecipe = await getProductRecipe(item.linkedProductId);
     const linkedHasXORGroups = linkedRecipe.some(r => r.selectionGroup);
     const linkedHasProducts = linkedRecipe.some(r => r.itemType === 'product');
 
@@ -392,7 +397,7 @@ export function getSelectedComponents(
     if (linkedHasProducts && !linkedHasXORGroups) {
       console.log(`    ↪️  Recursing into "${linkedProd.name}" (has nested products, no XOR)`);
       // This product is a bundle of other products - recurse to get them
-      const nestedComponents = getSelectedComponents(
+      const nestedComponents = await getSelectedComponents(
         item.linkedProductId,
         selections,
         componentQuantity,
@@ -481,7 +486,7 @@ export function getSelectedComponents(
         });
       }
     }
-  });
+  }
 
   return components;
 }
