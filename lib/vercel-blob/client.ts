@@ -196,18 +196,15 @@ export async function getProductById(id: string): Promise<Product | null> {
   // Try direct lookup by internal ID first
   let product: Product | null = data.products[id] || null;
 
-  // If not found, try as WC ID (in case products are keyed by WC ID)
-  if (!product) {
-    const wcId = parseInt(id);
-    if (!isNaN(wcId)) {
-      product = data.products[wcId.toString()] || null;
-      if (product) {
-        console.log(`✅ Found product using WC ID key ${wcId} (looked up by ID ${id})`);
-      }
+  // If not found, try as WC ID ONLY if the entire string is numeric
+  if (!product && /^\d+$/.test(id)) {
+    product = data.products[id] || null;
+    if (product) {
+      console.log(`✅ Found product using numeric key ${id}`);
     }
   }
 
-  // If still not found, search by ID field
+  // If still not found, search by ID field in all products
   if (!product) {
     product = Object.values(data.products).find(p => p.id === id) || null;
     if (product) {
