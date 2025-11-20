@@ -9,6 +9,7 @@
     "lint": "next lint"
   },
   "dependencies": {
+    "@vercel/blob": "^2.0.0",
     "@woocommerce/woocommerce-rest-api": "^1.0.1",
     "axios": "^1.6.8",
     "better-sqlite3": "^9.6.0",
