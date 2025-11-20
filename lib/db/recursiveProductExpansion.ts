@@ -82,6 +82,7 @@ export async function flattenAllChoices(
   const indent = '  '.repeat(depth);
 
   console.log(`${indent}🔍 Flattening choices for: ${product.name} (depth ${depth})`);
+  console.log(`${indent}   Recipe has ${recipe.length} items`);
 
   // Group recipe items by selection group
   const groupedBySelection: Record<string, ProductRecipeItem[]> = {};
@@ -89,6 +90,8 @@ export async function flattenAllChoices(
   const optional: ProductRecipeItem[] = [];
 
   recipe.forEach((item) => {
+    console.log(`${indent}   Item: ${item.linkedProductName || item.materialName} | isOptional=${item.isOptional} | selectionGroup=${item.selectionGroup}`);
+
     if (item.isOptional) {
       optional.push(item);
     } else if (item.selectionGroup) {
@@ -100,6 +103,8 @@ export async function flattenAllChoices(
       mandatoryIndividual.push(item);
     }
   });
+
+  console.log(`${indent}   Grouped: ${Object.keys(groupedBySelection).length} XOR groups, ${optional.length} optional, ${mandatoryIndividual.length} mandatory`);
 
   // Process XOR groups at this level
   for (const [groupName, items] of Object.entries(groupedBySelection)) {
@@ -373,9 +378,21 @@ export async function getSelectedComponents(
       continue;
     }
 
+    console.log(`  🔗 Looking up linked product: ID="${item.linkedProductId}" expectedName="${item.linkedProductName}"`);
+
     const linkedProd = await getProductById(item.linkedProductId);
     if (!linkedProd) {
+      console.error(`  ❌ Linked product not found! ID="${item.linkedProductId}" expectedName="${item.linkedProductName}"`);
       continue;
+    }
+
+    console.log(`  ✅ Found product: "${linkedProd.name}" (ID=${linkedProd.id}, WC ID=${linkedProd.wcId})`);
+
+    // CRITICAL: Check if returned product matches expected name
+    if (item.linkedProductName && linkedProd.name !== item.linkedProductName) {
+      console.error(`  🚨 MISMATCH! Expected "${item.linkedProductName}" but got "${linkedProd.name}"`);
+      console.error(`     Looking up ID: ${item.linkedProductId}`);
+      console.error(`     Returned product ID: ${linkedProd.id}, WC ID: ${linkedProd.wcId}`);
     }
 
     const componentQuantity = item.quantity * quantity;

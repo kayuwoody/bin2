@@ -188,9 +188,41 @@ export async function getProductByWcId(wcId: number): Promise<Product | null> {
  */
 export async function getProductById(id: string): Promise<Product | null> {
   const data = await fetchComboData();
-  if (!data) return null;
+  if (!data) {
+    console.warn(`⚠️ No combo data available when looking for product ID ${id}`);
+    return null;
+  }
 
-  return data.products[id] || null;
+  // Try direct lookup by internal ID first
+  let product: Product | null = data.products[id] || null;
+
+  // If not found, try as WC ID ONLY if the entire string is numeric
+  if (!product && /^\d+$/.test(id)) {
+    product = data.products[id] || null;
+    if (product) {
+      console.log(`✅ Found product using numeric key ${id}`);
+    }
+  }
+
+  // If still not found, search by ID field in all products
+  if (!product) {
+    product = Object.values(data.products).find(p => p.id === id) || null;
+    if (product) {
+      console.log(`✅ Found product by searching id field: ${product.name} (${id})`);
+    }
+  }
+
+  if (!product) {
+    console.warn(`⚠️ Product not found for ID ${id}.`);
+    console.warn(`   Available product IDs (first 10):`, Object.keys(data.products).slice(0, 10));
+    console.warn(`   Available product.id values (first 10):`,
+      Object.values(data.products).slice(0, 10).map(p => p.id)
+    );
+  } else {
+    console.log(`✅ Found product: ${product.name} (internal ID: ${product.id})`);
+  }
+
+  return product || null;
 }
 
 /**
