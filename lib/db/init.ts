@@ -1,26 +1,51 @@
-import Database from 'better-sqlite3';
 import path from 'path';
 import fs from 'fs';
 
-// Database file location
-const dbDir = path.join(process.cwd(), 'prisma');
-const dbPath = path.join(dbDir, 'dev.db');
+// Check if we're in a serverless environment where SQLite won't work
+// Only disable on Vercel or during build phase - local production (POS) should work fine
+const isServerless = process.env.NEXT_PHASE === 'phase-production-build' ||
+                     process.env.VERCEL === '1';
 
-// Ensure prisma directory exists before opening database
-if (!fs.existsSync(dbDir)) {
-  fs.mkdirSync(dbDir, { recursive: true });
+let db: any = null;
+
+// Initialize database everywhere except Vercel/serverless
+if (!isServerless) {
+  try {
+    const Database = require('better-sqlite3');
+
+    // Database file location
+    const dbDir = path.join(process.cwd(), 'prisma');
+    const dbPath = path.join(dbDir, 'dev.db');
+
+    // Ensure prisma directory exists before opening database
+    if (!fs.existsSync(dbDir)) {
+      fs.mkdirSync(dbDir, { recursive: true });
+    }
+
+    db = new Database(dbPath);
+  } catch (error) {
+    console.warn('⚠️ SQLite database not available (running in serverless/build mode)');
+    db = null;
+  }
 }
 
-export const db = new Database(dbPath);
+export { db };
 
 // Enable foreign keys
-db.pragma('foreign_keys = ON');
+if (db) {
+  db.pragma('foreign_keys = ON');
+}
 
 // Track if database has been initialized
 let isInitialized = false;
 
 // Initialize database schema
 export function initDatabase() {
+  // Skip if no database available
+  if (!db) {
+    return;
+  }
+
   // Only initialize once
   if (isInitialized) {
     return;
