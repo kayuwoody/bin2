@@ -45,7 +45,7 @@ export async function GET(
           productsWithNestedXORs.add(item.linkedProductId);
         }
       }
-    });
+    }
 
     // Only include mandatory individuals that DON'T have nested XOR groups
     const mandatoryIndividual = rootRecipe.filter(
