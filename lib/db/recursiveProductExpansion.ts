@@ -486,7 +486,7 @@ export async function getSelectedComponents(
         });
       }
     }
-  });
+  }
 
   return components;
 }
