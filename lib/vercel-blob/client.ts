@@ -115,13 +115,24 @@ async function fetchComboData(): Promise<ComboData | null> {
 
     const data: ComboData = await response.json();
 
+    // Validate data structure
+    if (!data.products || !data.recipes) {
+      console.error('❌ Invalid combo data structure:', {
+        hasProducts: !!data.products,
+        hasRecipes: !!data.recipes,
+        hasMaterials: !!data.materials,
+        keys: Object.keys(data)
+      });
+      return null;
+    }
+
     // Update cache
     cachedData = data;
     cacheExpiry = now + CACHE_DURATION;
 
     console.log(`✅ Loaded combo data (version: ${data.version}, last sync: ${data.lastSync})`);
     console.log(`   Products: ${Object.keys(data.products).length}`);
-    console.log(`   Materials: ${Object.keys(data.materials).length}`);
+    console.log(`   Materials: ${Object.keys(data.materials || {}).length}`);
     console.log(`   Recipes: ${Object.keys(data.recipes).length}`);
 
     return data;
@@ -136,10 +147,22 @@ async function fetchComboData(): Promise<ComboData | null> {
  */
 export async function getProductByWcId(wcId: number): Promise<Product | null> {
   const data = await fetchComboData();
-  if (!data) return null;
+  if (!data) {
+    console.warn(`⚠️ No combo data available when looking for WC ID ${wcId}`);
+    return null;
+  }
 
   // Find product by wcId
   const product = Object.values(data.products).find(p => p.wcId === wcId);
+
+  if (!product) {
+    console.warn(`⚠️ Product not found for WC ID ${wcId}. Available WC IDs:`,
+      Object.values(data.products).map(p => p.wcId).filter(id => id !== undefined)
+    );
+  } else {
+    console.log(`✅ Found product: ${product.name} (WC ID: ${wcId})`);
+  }
+
   return product || null;
 }
 
@@ -168,9 +191,22 @@ export async function getAllProducts(): Promise<Product[]> {
  */
 export async function getProductRecipe(productId: string): Promise<ProductRecipeItem[]> {
   const data = await fetchComboData();
-  if (!data) return [];
+  if (!data) {
+    console.warn(`⚠️ No combo data available when looking for recipe for product ${productId}`);
+    return [];
+  }
 
-  return data.recipes[productId] || [];
+  const recipe = data.recipes[productId] || [];
+
+  if (recipe.length === 0) {
+    console.warn(`⚠️ No recipe found for product ${productId}. Available recipe product IDs:`,
+      Object.keys(data.recipes)
+    );
+  } else {
+    console.log(`✅ Found recipe for product ${productId}: ${recipe.length} items`);
+  }
+
+  return recipe;
 }
 
 /**
