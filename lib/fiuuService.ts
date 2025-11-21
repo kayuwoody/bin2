@@ -21,7 +21,7 @@ export class FiuuService {
     this.secretKey = secretKey;
     // Use sandbox URL for development, production URL for live
     this.baseURL = sandboxMode
-      ? "https://sandbox.fiuu.com"
+      ? "https://sandbox-payment.fiuu.com"
       : "https://pay.fiuu.com";
   }
 
@@ -66,9 +66,15 @@ export class FiuuService {
     } = params;
 
     // Generate vcode (verify key hash) - MD5 hash for outbound request
-    const vcode = this.md5(
-      `${amount}${this.merchantID}${orderID}${this.verifyKey}`
-    );
+    // Official formula: vcode = md5({amount}{merchantID}{orderID}{verify_key})
+    const vcodeRaw = `${amount}${this.merchantID}${orderID}${this.verifyKey}`;
+    const vcode = this.md5(vcodeRaw);
+
+    console.log('🔑 Fiuu vcode generation:');
+    console.log('  Formula: amount + merchantID + orderID + verifyKey');
+    console.log('  Raw string:', vcodeRaw);
+    console.log('  Generated vcode:', vcode);
+    console.log('  Verify at: https://api.fiuu.com/RMS/query/vcode.php');
 
     // Build query parameters
     const queryParams = new URLSearchParams({
@@ -108,17 +114,32 @@ export class FiuuService {
     amount: string;
     currency: string;
     paydate: string;
+    appcode: string;
     skey: string;
   }): boolean {
-    const { tranID, orderid, status, domain, amount, currency, paydate, skey } =
-      callback;
+    const { tranID, orderid, status, amount, currency, paydate, appcode, skey } = callback;
 
-    // Generate expected skey: MD5(MD5(concat)) - double hash
-    const raw = `${tranID}${orderid}${status}${domain}${amount}${currency}${paydate}${this.secretKey}`;
-    const hash1 = this.md5(raw);
-    const hash2 = this.md5(hash1);
+    // Official Fiuu signature verification formula (2-step MD5):
+    // IMPORTANT: amount includes currency (e.g., "1.10RM")
+    // Step 1: pre_skey = MD5(txnID + orderID + status + merchantID + amount + currency)
+    // Step 2: skey = MD5(paydate + merchantID + pre_skey + appcode + secret_key)
 
-    return hash2 === skey;
+    const amountWithCurrency = `${amount}${currency}`;
+    const preSkey = this.md5(`${tranID}${orderid}${status}${this.merchantID}${amountWithCurrency}`);
+    const calculatedSkey = this.md5(`${paydate}${this.merchantID}${preSkey}${appcode}${this.secretKey}`);
+
+    console.log('🔐 Fiuu Signature Verification:');
+    console.log('  Step 1 raw:', `${tranID}${orderid}${status}${this.merchantID}${amountWithCurrency}`);
+    console.log('  Step 1 pre_skey:', preSkey);
+    console.log('  Step 2 calculated skey:', calculatedSkey);
+    console.log('  Received skey:', skey);
+    console.log('  Match:', calculatedSkey === skey ? '✅ VERIFIED' : '❌ FAILED');
+
+    if (calculatedSkey !== skey) {
+      console.log('  ⚠️ Signature mismatch - verify FIUU_MERCHANT_ID and FIUU_SECRET_KEY');
+    }
+
+    return calculatedSkey === skey;
   }
 
   /**

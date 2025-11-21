@@ -65,6 +65,12 @@ export async function POST(req: Request) {
 
     console.log(`💳 Delayed payment ${callback.orderid}: ${statusDesc} (${callback.status})`);
 
+    // Skip WooCommerce update for Fiuu demo/test orders
+    if (callback.orderid.startsWith('DEMO')) {
+      console.log(`⚠️ Skipping WooCommerce update for demo order ${callback.orderid}`);
+      return new NextResponse('OK', { status: 200 });
+    }
+
     // Update WooCommerce order
     if (isSuccess) {
       await updateWooOrder(callback.orderid, {
