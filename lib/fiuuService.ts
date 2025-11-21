@@ -66,9 +66,15 @@ export class FiuuService {
     } = params;
 
     // Generate vcode (verify key hash) - MD5 hash for outbound request
-    const vcode = this.md5(
-      `${amount}${this.merchantID}${orderID}${this.verifyKey}`
-    );
+    // Official formula: vcode = md5({amount}{merchantID}{orderID}{verify_key})
+    const vcodeRaw = `${amount}${this.merchantID}${orderID}${this.verifyKey}`;
+    const vcode = this.md5(vcodeRaw);
+
+    console.log('🔑 Fiuu vcode generation:');
+    console.log('  Formula: amount + merchantID + orderID + verifyKey');
+    console.log('  Raw string:', vcodeRaw);
+    console.log('  Generated vcode:', vcode);
+    console.log('  Verify at: https://api.fiuu.com/RMS/query/vcode.php');
 
     // Build query parameters
     const queryParams = new URLSearchParams({
@@ -121,13 +127,18 @@ export class FiuuService {
     const calculatedSkey = this.md5(`${paydate}${this.merchantID}${preSkey}${appcode}${this.secretKey}`);
 
     console.log('🔐 Fiuu Signature Verification (Official Formula):');
-    console.log('  Step 1 - pre_skey:', preSkey);
-    console.log('  Step 2 - calculated skey:', calculatedSkey);
+    console.log('  Merchant ID:', this.merchantID);
+    console.log('  Step 1 formula: tranID + orderID + status + merchantID + amount');
+    console.log('  Step 1 raw:', `${tranID}${orderid}${status}${this.merchantID}${amount}`);
+    console.log('  Step 1 pre_skey:', preSkey);
+    console.log('  Step 2 formula: paydate + merchantID + pre_skey + appcode + secret_key');
+    console.log('  Step 2 raw:', `${paydate}${this.merchantID}${preSkey}${appcode}${this.secretKey}`);
+    console.log('  Step 2 calculated skey:', calculatedSkey);
     console.log('  Received skey:', skey);
     console.log('  Match:', calculatedSkey === skey ? '✅ VERIFIED' : '❌ FAILED');
 
     if (calculatedSkey !== skey) {
-      console.log('  ⚠️ Signature mismatch - verify FIUU_MERCHANT_ID and FIUU_SECRET_KEY');
+      console.log('  ⚠️ Signature mismatch - verify FIUU_MERCHANT_ID and FIUU_SECRET_KEY in Vercel env vars');
     }
 
     return calculatedSkey === skey;
