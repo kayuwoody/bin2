@@ -108,17 +108,24 @@ export class FiuuService {
     amount: string;
     currency: string;
     paydate: string;
+    appcode: string;
     skey: string;
   }): boolean {
-    const { tranID, orderid, status, domain, amount, currency, paydate, skey } =
+    const { tranID, orderid, status, domain, amount, currency, appcode, skey } =
       callback;
 
-    // Generate expected skey: MD5(MD5(concat)) - double hash
-    const raw = `${tranID}${orderid}${status}${domain}${amount}${currency}${paydate}${this.secretKey}`;
-    const hash1 = this.md5(raw);
-    const hash2 = this.md5(hash1);
+    // Generate expected skey according to Fiuu documentation
+    // Formula: MD5(tranID + orderid + status + domain + amount + currency + appcode + secretKey)
+    const raw = `${tranID}${orderid}${status}${domain}${amount}${currency}${appcode}${this.secretKey}`;
+    const calculated = this.md5(raw);
 
-    return hash2 === skey;
+    console.log('🔐 Fiuu Signature Verification:');
+    console.log('  Raw string:', raw);
+    console.log('  Calculated:', calculated);
+    console.log('  Received:  ', skey);
+    console.log('  Match:', calculated === skey);
+
+    return calculated === skey;
   }
 
   /**
