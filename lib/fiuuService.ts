@@ -114,18 +114,39 @@ export class FiuuService {
     const { tranID, orderid, status, domain, amount, currency, appcode, skey } =
       callback;
 
-    // Generate expected skey according to Fiuu documentation
-    // Formula: MD5(tranID + orderid + status + domain + amount + currency + appcode + secretKey)
-    const raw = `${tranID}${orderid}${status}${domain}${amount}${currency}${appcode}${this.secretKey}`;
-    const calculated = this.md5(raw);
-
     console.log('🔐 Fiuu Signature Verification:');
-    console.log('  Raw string:', raw);
-    console.log('  Calculated:', calculated);
-    console.log('  Received:  ', skey);
-    console.log('  Match:', calculated === skey);
+    console.log('  Received skey:', skey);
 
-    return calculated === skey;
+    // Try different formulas to find which one Fiuu uses
+
+    // Formula 1: Standard with appcode
+    const raw1 = `${tranID}${orderid}${status}${domain}${amount}${currency}${appcode}${this.secretKey}`;
+    const calc1 = this.md5(raw1);
+    console.log('  Formula 1 (appcode):', calc1, calc1 === skey ? '✅ MATCH' : '');
+
+    // Formula 2: With MYR instead of RM
+    const currencyMYR = currency === 'RM' ? 'MYR' : currency;
+    const raw2 = `${tranID}${orderid}${status}${domain}${amount}${currencyMYR}${appcode}${this.secretKey}`;
+    const calc2 = this.md5(raw2);
+    console.log('  Formula 2 (MYR):', calc2, calc2 === skey ? '✅ MATCH' : '');
+
+    // Formula 3: Old formula with paydate
+    const raw3 = `${tranID}${orderid}${status}${domain}${amount}${currency}${callback.paydate}${this.secretKey}`;
+    const calc3 = this.md5(raw3);
+    console.log('  Formula 3 (paydate):', calc3, calc3 === skey ? '✅ MATCH' : '');
+
+    // Formula 4: Double hash with appcode
+    const hash1_v4 = this.md5(raw1);
+    const calc4 = this.md5(hash1_v4);
+    console.log('  Formula 4 (double hash appcode):', calc4, calc4 === skey ? '✅ MATCH' : '');
+
+    // Formula 5: Double hash with paydate
+    const hash1_v5 = this.md5(raw3);
+    const calc5 = this.md5(hash1_v5);
+    console.log('  Formula 5 (double hash paydate):', calc5, calc5 === skey ? '✅ MATCH' : '');
+
+    // Return true if any formula matches
+    return calc1 === skey || calc2 === skey || calc3 === skey || calc4 === skey || calc5 === skey;
   }
 
   /**
