@@ -21,7 +21,7 @@ export class FiuuService {
     this.secretKey = secretKey;
     // Use sandbox URL for development, production URL for live
     this.baseURL = sandboxMode
-      ? "https://sandbox.fiuu.com"
+      ? "https://sandbox-payment.fiuu.com"
       : "https://pay.fiuu.com";
   }
 
@@ -111,64 +111,26 @@ export class FiuuService {
     appcode: string;
     skey: string;
   }): boolean {
-    const { tranID, orderid, status, domain, amount, currency, appcode, skey } =
-      callback;
+    const { tranID, orderid, status, amount, paydate, appcode, skey } = callback;
 
-    console.log('🔐 Fiuu Signature Verification:');
+    // Official Fiuu signature verification formula (2-step MD5):
+    // Step 1: pre_skey = MD5(txnID + orderID + status + merchantID + amount)
+    // Step 2: skey = MD5(paydate + merchantID + pre_skey + appcode + secret_key)
+
+    const preSkey = this.md5(`${tranID}${orderid}${status}${this.merchantID}${amount}`);
+    const calculatedSkey = this.md5(`${paydate}${this.merchantID}${preSkey}${appcode}${this.secretKey}`);
+
+    console.log('🔐 Fiuu Signature Verification (Official Formula):');
+    console.log('  Step 1 - pre_skey:', preSkey);
+    console.log('  Step 2 - calculated skey:', calculatedSkey);
     console.log('  Received skey:', skey);
+    console.log('  Match:', calculatedSkey === skey ? '✅ VERIFIED' : '❌ FAILED');
 
-    // Try different formulas to find which one Fiuu uses
-
-    // Formula 1: Standard with appcode + secretKey
-    const raw1 = `${tranID}${orderid}${status}${domain}${amount}${currency}${appcode}${this.secretKey}`;
-    const calc1 = this.md5(raw1);
-    console.log('  Formula 1 (appcode+secretKey):', calc1, calc1 === skey ? '✅ MATCH' : '');
-
-    // Formula 2: Standard with appcode + verifyKey
-    const raw2 = `${tranID}${orderid}${status}${domain}${amount}${currency}${appcode}${this.verifyKey}`;
-    const calc2 = this.md5(raw2);
-    console.log('  Formula 2 (appcode+verifyKey):', calc2, calc2 === skey ? '✅ MATCH' : '');
-
-    // Formula 3: Old formula with paydate + secretKey
-    const raw3 = `${tranID}${orderid}${status}${domain}${amount}${currency}${callback.paydate}${this.secretKey}`;
-    const calc3 = this.md5(raw3);
-    console.log('  Formula 3 (paydate+secretKey):', calc3, calc3 === skey ? '✅ MATCH' : '');
-
-    // Formula 4: Old formula with paydate + verifyKey
-    const raw4 = `${tranID}${orderid}${status}${domain}${amount}${currency}${callback.paydate}${this.verifyKey}`;
-    const calc4 = this.md5(raw4);
-    console.log('  Formula 4 (paydate+verifyKey):', calc4, calc4 === skey ? '✅ MATCH' : '');
-
-    // Formula 5: Without appcode/paydate + secretKey
-    const raw5 = `${tranID}${orderid}${status}${domain}${amount}${currency}${this.secretKey}`;
-    const calc5 = this.md5(raw5);
-    console.log('  Formula 5 (no appcode/paydate+secretKey):', calc5, calc5 === skey ? '✅ MATCH' : '');
-
-    // Formula 6: Without appcode/paydate + verifyKey
-    const raw6 = `${tranID}${orderid}${status}${domain}${amount}${currency}${this.verifyKey}`;
-    const calc6 = this.md5(raw6);
-    console.log('  Formula 6 (no appcode/paydate+verifyKey):', calc6, calc6 === skey ? '✅ MATCH' : '');
-
-    // Formula 7: With merchantID + secretKey
-    const raw7 = `${tranID}${orderid}${status}${domain}${amount}${currency}${this.merchantID}${this.secretKey}`;
-    const calc7 = this.md5(raw7);
-    console.log('  Formula 7 (merchantID+secretKey):', calc7, calc7 === skey ? '✅ MATCH' : '');
-
-    // Formula 8: Channel might be included
-    const channel = (callback as any).channel || '';
-    const raw8 = `${tranID}${orderid}${status}${domain}${amount}${currency}${channel}${this.secretKey}`;
-    const calc8 = this.md5(raw8);
-    console.log('  Formula 8 (channel+secretKey):', calc8, calc8 === skey ? '✅ MATCH' : '');
-
-    // Return true if any formula matches
-    const matches = [calc1, calc2, calc3, calc4, calc5, calc6, calc7, calc8].some(c => c === skey);
-    if (!matches) {
-      console.log('  ⚠️ No formulas matched. CRITICAL: Verify your Vercel environment variables.');
-      console.log('  Current merchantID:', this.merchantID);
-      console.log('  SecretKey starts with:', this.secretKey.substring(0, 8) + '...');
-      console.log('  VerifyKey starts with:', this.verifyKey.substring(0, 8) + '...');
+    if (calculatedSkey !== skey) {
+      console.log('  ⚠️ Signature mismatch - verify FIUU_MERCHANT_ID and FIUU_SECRET_KEY');
     }
-    return matches;
+
+    return calculatedSkey === skey;
   }
 
   /**
