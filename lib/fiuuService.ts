@@ -119,34 +119,42 @@ export class FiuuService {
 
     // Try different formulas to find which one Fiuu uses
 
-    // Formula 1: Standard with appcode
+    // Formula 1: Standard with appcode + secretKey
     const raw1 = `${tranID}${orderid}${status}${domain}${amount}${currency}${appcode}${this.secretKey}`;
     const calc1 = this.md5(raw1);
-    console.log('  Formula 1 (appcode):', calc1, calc1 === skey ? '✅ MATCH' : '');
+    console.log('  Formula 1 (appcode+secretKey):', calc1, calc1 === skey ? '✅ MATCH' : '');
 
-    // Formula 2: With MYR instead of RM
-    const currencyMYR = currency === 'RM' ? 'MYR' : currency;
-    const raw2 = `${tranID}${orderid}${status}${domain}${amount}${currencyMYR}${appcode}${this.secretKey}`;
+    // Formula 2: Standard with appcode + verifyKey
+    const raw2 = `${tranID}${orderid}${status}${domain}${amount}${currency}${appcode}${this.verifyKey}`;
     const calc2 = this.md5(raw2);
-    console.log('  Formula 2 (MYR):', calc2, calc2 === skey ? '✅ MATCH' : '');
+    console.log('  Formula 2 (appcode+verifyKey):', calc2, calc2 === skey ? '✅ MATCH' : '');
 
-    // Formula 3: Old formula with paydate
+    // Formula 3: Old formula with paydate + secretKey
     const raw3 = `${tranID}${orderid}${status}${domain}${amount}${currency}${callback.paydate}${this.secretKey}`;
     const calc3 = this.md5(raw3);
-    console.log('  Formula 3 (paydate):', calc3, calc3 === skey ? '✅ MATCH' : '');
+    console.log('  Formula 3 (paydate+secretKey):', calc3, calc3 === skey ? '✅ MATCH' : '');
 
-    // Formula 4: Double hash with appcode
-    const hash1_v4 = this.md5(raw1);
-    const calc4 = this.md5(hash1_v4);
-    console.log('  Formula 4 (double hash appcode):', calc4, calc4 === skey ? '✅ MATCH' : '');
+    // Formula 4: Old formula with paydate + verifyKey
+    const raw4 = `${tranID}${orderid}${status}${domain}${amount}${currency}${callback.paydate}${this.verifyKey}`;
+    const calc4 = this.md5(raw4);
+    console.log('  Formula 4 (paydate+verifyKey):', calc4, calc4 === skey ? '✅ MATCH' : '');
 
-    // Formula 5: Double hash with paydate
-    const hash1_v5 = this.md5(raw3);
-    const calc5 = this.md5(hash1_v5);
-    console.log('  Formula 5 (double hash paydate):', calc5, calc5 === skey ? '✅ MATCH' : '');
+    // Formula 5: Without appcode/paydate + secretKey
+    const raw5 = `${tranID}${orderid}${status}${domain}${amount}${currency}${this.secretKey}`;
+    const calc5 = this.md5(raw5);
+    console.log('  Formula 5 (no appcode/paydate+secretKey):', calc5, calc5 === skey ? '✅ MATCH' : '');
+
+    // Formula 6: Without appcode/paydate + verifyKey
+    const raw6 = `${tranID}${orderid}${status}${domain}${amount}${currency}${this.verifyKey}`;
+    const calc6 = this.md5(raw6);
+    console.log('  Formula 6 (no appcode/paydate+verifyKey):', calc6, calc6 === skey ? '✅ MATCH' : '');
 
     // Return true if any formula matches
-    return calc1 === skey || calc2 === skey || calc3 === skey || calc4 === skey || calc5 === skey;
+    const matches = [calc1, calc2, calc3, calc4, calc5, calc6].some(c => c === skey);
+    if (!matches) {
+      console.log('  ⚠️ No formulas matched. Verify your FIUU_SECRET_KEY and FIUU_VERIFY_KEY are correct.');
+    }
+    return matches;
   }
 
   /**
