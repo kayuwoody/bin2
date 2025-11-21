@@ -3,6 +3,19 @@ import { getFiuuService } from '@/lib/fiuuService';
 import { updateWooOrder } from '@/lib/orderService';
 
 /**
+ * GET /api/payments/callback
+ * URL verification endpoint - allows Fiuu to verify the callback URL exists
+ */
+export async function GET() {
+  return NextResponse.json({
+    endpoint: 'Fiuu Payment Delayed Callback Webhook',
+    status: 'ready',
+    methods: ['POST'],
+    note: 'This endpoint accepts POST requests from Fiuu payment gateway for delayed payment confirmations',
+  });
+}
+
+/**
  * POST /api/payments/callback
  * Delayed callback endpoint - called by Fiuu for non-realtime payments
  *
