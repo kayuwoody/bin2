@@ -149,10 +149,24 @@ export class FiuuService {
     const calc6 = this.md5(raw6);
     console.log('  Formula 6 (no appcode/paydate+verifyKey):', calc6, calc6 === skey ? '✅ MATCH' : '');
 
+    // Formula 7: With merchantID + secretKey
+    const raw7 = `${tranID}${orderid}${status}${domain}${amount}${currency}${this.merchantID}${this.secretKey}`;
+    const calc7 = this.md5(raw7);
+    console.log('  Formula 7 (merchantID+secretKey):', calc7, calc7 === skey ? '✅ MATCH' : '');
+
+    // Formula 8: Channel might be included
+    const channel = (callback as any).channel || '';
+    const raw8 = `${tranID}${orderid}${status}${domain}${amount}${currency}${channel}${this.secretKey}`;
+    const calc8 = this.md5(raw8);
+    console.log('  Formula 8 (channel+secretKey):', calc8, calc8 === skey ? '✅ MATCH' : '');
+
     // Return true if any formula matches
-    const matches = [calc1, calc2, calc3, calc4, calc5, calc6].some(c => c === skey);
+    const matches = [calc1, calc2, calc3, calc4, calc5, calc6, calc7, calc8].some(c => c === skey);
     if (!matches) {
-      console.log('  ⚠️ No formulas matched. Verify your FIUU_SECRET_KEY and FIUU_VERIFY_KEY are correct.');
+      console.log('  ⚠️ No formulas matched. CRITICAL: Verify your Vercel environment variables.');
+      console.log('  Current merchantID:', this.merchantID);
+      console.log('  SecretKey starts with:', this.secretKey.substring(0, 8) + '...');
+      console.log('  VerifyKey starts with:', this.verifyKey.substring(0, 8) + '...');
     }
     return matches;
   }
