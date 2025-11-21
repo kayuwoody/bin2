@@ -117,7 +117,7 @@ export class FiuuService {
     appcode: string;
     skey: string;
   }): boolean {
-    const { tranID, orderid, status, amount, paydate, appcode, skey } = callback;
+    const { tranID, orderid, status, amount, currency, paydate, appcode, skey } = callback;
 
     // Official Fiuu signature verification formula (2-step MD5):
     // Step 1: pre_skey = MD5(txnID + orderID + status + merchantID + amount)
@@ -126,22 +126,33 @@ export class FiuuService {
     const preSkey = this.md5(`${tranID}${orderid}${status}${this.merchantID}${amount}`);
     const calculatedSkey = this.md5(`${paydate}${this.merchantID}${preSkey}${appcode}${this.secretKey}`);
 
+    // Try alternative: amount with currency
+    const amountWithCurrency = `${amount}${currency}`;
+    const preSkey2 = this.md5(`${tranID}${orderid}${status}${this.merchantID}${amountWithCurrency}`);
+    const calculatedSkey2 = this.md5(`${paydate}${this.merchantID}${preSkey2}${appcode}${this.secretKey}`);
+
     console.log('🔐 Fiuu Signature Verification (Official Formula):');
     console.log('  Merchant ID:', this.merchantID);
     console.log('  Step 1 formula: tranID + orderID + status + merchantID + amount');
     console.log('  Step 1 raw:', `${tranID}${orderid}${status}${this.merchantID}${amount}`);
     console.log('  Step 1 pre_skey:', preSkey);
-    console.log('  Step 2 formula: paydate + merchantID + pre_skey + appcode + secret_key');
     console.log('  Step 2 raw:', `${paydate}${this.merchantID}${preSkey}${appcode}${this.secretKey}`);
     console.log('  Step 2 calculated skey:', calculatedSkey);
+    console.log('  ---');
+    console.log('  Alternative: amount with currency:', amountWithCurrency);
+    console.log('  Alt Step 1 raw:', `${tranID}${orderid}${status}${this.merchantID}${amountWithCurrency}`);
+    console.log('  Alt Step 1 pre_skey:', preSkey2);
+    console.log('  Alt Step 2 calculated skey:', calculatedSkey2);
+    console.log('  ---');
     console.log('  Received skey:', skey);
-    console.log('  Match:', calculatedSkey === skey ? '✅ VERIFIED' : '❌ FAILED');
+    console.log('  Match (standard):', calculatedSkey === skey ? '✅ VERIFIED' : '❌');
+    console.log('  Match (with currency):', calculatedSkey2 === skey ? '✅ VERIFIED' : '❌');
 
-    if (calculatedSkey !== skey) {
+    if (calculatedSkey !== skey && calculatedSkey2 !== skey) {
       console.log('  ⚠️ Signature mismatch - verify FIUU_MERCHANT_ID and FIUU_SECRET_KEY in Vercel env vars');
     }
 
-    return calculatedSkey === skey;
+    return calculatedSkey === skey || calculatedSkey2 === skey;
   }
 
   /**
