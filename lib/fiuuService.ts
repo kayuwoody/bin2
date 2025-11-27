@@ -108,11 +108,14 @@ export class FiuuService {
       formParams.notifyurl = notifyURL;
     }
 
-    // Per official Fiuu documentation, URL format is:
-    // https://pay.fiuu.com/RMS/pay/{merchantID}/index.php
-    // Or optionally /{channelFilename} to force a specific payment method
-    // index.php shows all available payment methods
-    const action = `${this.baseURL}/RMS/pay/${this.merchantID}/index.php`;
+    // Per official Fiuu support response:
+    // Sandbox: use indexAN.php for credit cards
+    // Production: use index.php for all payment methods
+    // indexAN.php = credit card channel file (sandbox)
+    // index.php = all payment methods (production)
+    const isSandbox = this.baseURL.includes('sandbox-payment');
+    const channelFile = isSandbox ? 'indexAN.php' : 'index.php';
+    const action = `${this.baseURL}/RMS/pay/${this.merchantID}/${channelFile}`;
 
     return {
       action,
