@@ -33,12 +33,13 @@ export class FiuuService {
   }
 
   /**
-   * Generate Fiuu payment URL for redirect
+   * Generate Fiuu payment form data for POST submission
+   * Fiuu requires POST method for payment initiation
    *
    * @param params Payment parameters
-   * @returns Complete payment URL to redirect customer to
+   * @returns Object with action URL and form parameters
    */
-  generatePaymentURL(params: {
+  generatePaymentFormData(params: {
     orderID: string;
     amount: string;
     currency?: string;
@@ -50,7 +51,10 @@ export class FiuuService {
     bill_email?: string;
     bill_mobile?: string;
     bill_desc?: string;
-  }): string {
+  }): {
+    action: string;
+    params: Record<string, string>;
+  } {
     const {
       orderID,
       amount,
@@ -76,8 +80,8 @@ export class FiuuService {
     console.log('  Generated vcode:', vcode);
     console.log('  Verify at: https://api.fiuu.com/RMS/query/vcode.php');
 
-    // Build query parameters
-    const queryParams = new URLSearchParams({
+    // Build form parameters
+    const formParams: Record<string, string> = {
       amount,
       orderid: orderID,
       bill_name,
@@ -88,15 +92,45 @@ export class FiuuService {
       returnurl: returnURL,
       callbackurl: callbackURL,
       vcode,
-    });
+    };
 
     // Note: notifyURL is registered in Fiuu portal, not passed in URL
     // But we include it in case Fiuu supports dynamic override
     if (notifyURL) {
-      queryParams.append("notifyurl", notifyURL);
+      formParams.notifyurl = notifyURL;
     }
 
-    return `${this.baseURL}/RMS/pay/${this.merchantID}/${paymentMethod}?${queryParams.toString()}`;
+    const action = `${this.baseURL}/RMS/pay/${this.merchantID}/${paymentMethod}`;
+
+    return {
+      action,
+      params: formParams,
+    };
+  }
+
+  /**
+   * Generate Fiuu payment URL for redirect (DEPRECATED - use generatePaymentFormData for POST)
+   * Note: Fiuu may require POST method instead of GET
+   *
+   * @param params Payment parameters
+   * @returns Complete payment URL to redirect customer to
+   */
+  generatePaymentURL(params: {
+    orderID: string;
+    amount: string;
+    currency?: string;
+    paymentMethod: string;
+    returnURL: string;
+    notifyURL: string;
+    callbackURL: string;
+    bill_name?: string;
+    bill_email?: string;
+    bill_mobile?: string;
+    bill_desc?: string;
+  }): string {
+    const formData = this.generatePaymentFormData(params);
+    const queryParams = new URLSearchParams(formData.params);
+    return `${formData.action}?${queryParams.toString()}`;
   }
 
   /**

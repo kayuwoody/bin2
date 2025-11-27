@@ -34,8 +34,8 @@ export async function POST(req: Request) {
     // Initialize Fiuu service
     const fiuu = getFiuuService();
 
-    // Generate payment URL
-    const paymentURL = fiuu.generatePaymentURL({
+    // Generate payment form data (for POST submission)
+    const paymentFormData = fiuu.generatePaymentFormData({
       orderID: String(orderID),
       amount: String(amount),
       currency,
@@ -49,7 +49,16 @@ export async function POST(req: Request) {
       bill_desc: description || `Order #${orderID}`,
     });
 
-    console.log(`✅ Generated Fiuu payment URL for order ${orderID}: ${paymentURL}`);
+    // Build redirect URL to our payment redirect page (which will POST to Fiuu)
+    const redirectParams = new URLSearchParams({
+      fiuuURL: paymentFormData.action,
+      ...paymentFormData.params,
+    });
+    const paymentURL = `${appURL}/payment/redirect?${redirectParams.toString()}`;
+
+    console.log(`✅ Generated Fiuu payment form for order ${orderID}`);
+    console.log(`   Action: ${paymentFormData.action}`);
+    console.log(`   Redirect URL: ${paymentURL}`);
 
     return NextResponse.json({
       success: true,
@@ -57,6 +66,7 @@ export async function POST(req: Request) {
       orderID,
       amount,
       currency,
+      formData: paymentFormData, // Include form data for alternative implementations
     });
   } catch (error) {
     return handleApiError(error, '/api/payments/initiate');
