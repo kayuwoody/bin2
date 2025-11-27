@@ -97,9 +97,11 @@ export class FiuuService {
       merchantID: this.merchantID,
     };
 
+    // Determine if we're in sandbox mode
+    const isSandbox = this.baseURL.includes('sandbox-payment');
+
     // Force credit card channel selection
     // Sandbox uses 'creditAN', production uses 'credit'
-    const isSandbox = this.baseURL.includes('sandbox-payment');
     formParams.channel = isSandbox ? 'creditAN' : 'credit';
 
     // Only include bill_mobile if it has a value
@@ -118,7 +120,6 @@ export class FiuuService {
     // Production: use index.php for all payment methods
     // indexAN.php = credit card channel file (sandbox)
     // index.php = all payment methods (production)
-    const isSandbox = this.baseURL.includes('sandbox-payment');
     const channelFile = isSandbox ? 'indexAN.php' : 'index.php';
     const action = `${this.baseURL}/RMS/pay/${this.merchantID}/${channelFile}`;
 
