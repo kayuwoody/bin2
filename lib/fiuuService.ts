@@ -19,9 +19,12 @@ export class FiuuService {
     this.merchantID = merchantID;
     this.verifyKey = verifyKey;
     this.secretKey = secretKey;
-    // Fiuu uses the same URL for both sandbox and production
-    // Sandbox vs production is determined by merchant ID (SB_ prefix for sandbox)
-    this.baseURL = "https://pay.fiuu.com";
+    // Per official Fiuu documentation:
+    // Production: https://pay.fiuu.com
+    // Sandbox: https://sandbox-payment.fiuu.com
+    this.baseURL = sandboxMode
+      ? "https://sandbox-payment.fiuu.com"
+      : "https://pay.fiuu.com";
   }
 
   /**
