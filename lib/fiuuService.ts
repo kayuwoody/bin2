@@ -85,13 +85,19 @@ export class FiuuService {
       orderid: orderID,
       bill_name,
       bill_email,
-      bill_mobile,
       bill_desc,
       currency,
       returnurl: returnURL,
       callbackurl: callbackURL,
       vcode,
+      // Add merchantID as parameter (in addition to URL path)
+      merchantID: this.merchantID,
     };
+
+    // Only include bill_mobile if it has a value
+    if (bill_mobile) {
+      formParams.bill_mobile = bill_mobile;
+    }
 
     // Note: notifyURL is registered in Fiuu portal, not passed in URL
     // But we include it in case Fiuu supports dynamic override
