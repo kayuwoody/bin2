@@ -21,15 +21,16 @@ async function handleReturn(req: Request) {
     const url = new URL(req.url);
     let params: Record<string, string> = {};
 
-    // Fiuu can send parameters via GET (query params) or POST (form body)
+    // Fiuu can send parameters via GET (query params) or POST (form-urlencoded body)
     if (req.method === 'POST') {
-      // For POST requests, read from form body
-      const formData = await req.formData();
+      // For POST requests, read from form-urlencoded body (same as notify/callback endpoints)
+      const body = await req.text();
+      const formParams = new URLSearchParams(body);
       params = {
-        orderid: formData.get('orderid')?.toString() || '',
-        status: formData.get('status')?.toString() || '',
-        tranID: formData.get('tranID')?.toString() || '',
-        skey: formData.get('skey')?.toString() || '',
+        orderid: formParams.get('orderid') || '',
+        status: formParams.get('status') || '',
+        tranID: formParams.get('tranID') || '',
+        skey: formParams.get('skey') || '',
       };
     } else {
       // For GET requests, read from query params
