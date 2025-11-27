@@ -19,9 +19,9 @@ export class FiuuService {
     this.merchantID = merchantID;
     this.verifyKey = verifyKey;
     this.secretKey = secretKey;
-    // Use legacy MOLPay URL if merchant account hasn't been migrated to Fiuu
-    // Some accounts still use onlinepayment.com.my/MOLPay instead of pay.fiuu.com
-    this.baseURL = "https://www.onlinepayment.com.my/MOLPay";
+    // Fiuu uses the same URL for both sandbox and production
+    // Sandbox vs production is determined by merchant ID (SB_ prefix for sandbox)
+    this.baseURL = "https://pay.fiuu.com";
   }
 
   /**
@@ -105,7 +105,10 @@ export class FiuuService {
       formParams.notifyurl = notifyURL;
     }
 
-    const action = `${this.baseURL}/RMS/pay/${this.merchantID}/${paymentMethod}`;
+    // Per official Fiuu documentation, URL format is:
+    // https://pay.fiuu.com/RMS/pay/{merchantID}/
+    // Payment method is NOT in the URL - it's selected on Fiuu's page
+    const action = `${this.baseURL}/RMS/pay/${this.merchantID}/`;
 
     return {
       action,
