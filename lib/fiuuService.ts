@@ -97,6 +97,11 @@ export class FiuuService {
       merchantID: this.merchantID,
     };
 
+    // Force credit card channel selection
+    // Sandbox uses 'creditAN', production uses 'credit'
+    const isSandbox = this.baseURL.includes('sandbox-payment');
+    formParams.channel = isSandbox ? 'creditAN' : 'credit';
+
     // Only include bill_mobile if it has a value
     if (bill_mobile) {
       formParams.bill_mobile = bill_mobile;

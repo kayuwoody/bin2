@@ -42,6 +42,7 @@ function PaymentRedirectContent() {
   const notifyurl = searchParams.get("notifyurl");
   const vcode = searchParams.get("vcode");
   const merchantID = searchParams.get("merchantID");
+  const channel = searchParams.get("channel");
 
   useEffect(() => {
     // Auto-submit the form once on mount
@@ -90,6 +91,7 @@ function PaymentRedirectContent() {
           {notifyurl && <input type="hidden" name="notifyurl" value={notifyurl} />}
           <input type="hidden" name="vcode" value={vcode || ""} />
           {merchantID && <input type="hidden" name="merchantID" value={merchantID} />}
+          {channel && <input type="hidden" name="channel" value={channel} />}
         </form>
       </div>
     </div>
