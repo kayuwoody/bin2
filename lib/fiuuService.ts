@@ -109,9 +109,10 @@ export class FiuuService {
     }
 
     // Per official Fiuu documentation, URL format is:
-    // https://pay.fiuu.com/RMS/pay/{merchantID}/
-    // Payment method is NOT in the URL - it's selected on Fiuu's page
-    const action = `${this.baseURL}/RMS/pay/${this.merchantID}/`;
+    // https://pay.fiuu.com/RMS/pay/{merchantID}/index.php
+    // Or optionally /{channelFilename} to force a specific payment method
+    // index.php shows all available payment methods
+    const action = `${this.baseURL}/RMS/pay/${this.merchantID}/index.php`;
 
     return {
       action,
