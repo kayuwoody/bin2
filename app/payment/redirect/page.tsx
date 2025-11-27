@@ -49,9 +49,19 @@ function PaymentRedirectContent() {
     if (formRef.current && !hasSubmitted.current && fiuuURL) {
       hasSubmitted.current = true;
       console.log("🚀 Auto-submitting payment form to Fiuu via POST");
+      console.log("📋 Form action:", fiuuURL);
+      console.log("💳 Channel parameter:", channel);
+      console.log("📦 All form data:", {
+        amount,
+        orderid,
+        currency,
+        merchantID,
+        channel,
+        vcode,
+      });
       formRef.current.submit();
     }
-  }, [fiuuURL]);
+  }, [fiuuURL, channel, amount, orderid, currency, merchantID, vcode]);
 
   if (!fiuuURL) {
     return (
