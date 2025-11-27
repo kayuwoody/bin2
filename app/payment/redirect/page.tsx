@@ -1,14 +1,29 @@
 "use client";
 
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, Suspense } from "react";
 import { useSearchParams } from "next/navigation";
 
 /**
- * Payment Redirect Page
- * This page receives payment parameters and auto-submits them as a POST request to Fiuu
+ * Loading fallback for Suspense boundary
+ */
+function LoadingFallback() {
+  return (
+    <div className="min-h-screen flex items-center justify-center bg-gray-100">
+      <div className="bg-white rounded-lg shadow-lg p-8 max-w-md w-full text-center">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
+        <h2 className="text-xl font-semibold text-gray-900 mb-2">Loading Payment Gateway</h2>
+        <p className="text-gray-600">Please wait...</p>
+      </div>
+    </div>
+  );
+}
+
+/**
+ * Payment Redirect Component
+ * This component receives payment parameters and auto-submits them as a POST request to Fiuu
  * This is necessary because Fiuu requires POST method, not GET
  */
-export default function PaymentRedirectPage() {
+function PaymentRedirectContent() {
   const searchParams = useSearchParams();
   const formRef = useRef<HTMLFormElement>(null);
   const hasSubmitted = useRef(false);
@@ -76,5 +91,17 @@ export default function PaymentRedirectPage() {
         </form>
       </div>
     </div>
+  );
+}
+
+/**
+ * Payment Redirect Page (wrapped in Suspense boundary)
+ * Required by Next.js for pages using useSearchParams()
+ */
+export default function PaymentRedirectPage() {
+  return (
+    <Suspense fallback={<LoadingFallback />}>
+      <PaymentRedirectContent />
+    </Suspense>
   );
 }
