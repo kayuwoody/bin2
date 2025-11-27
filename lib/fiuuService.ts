@@ -69,12 +69,13 @@ export class FiuuService {
     } = params;
 
     // Generate vcode (verify key hash) - MD5 hash for outbound request
-    // Official formula: vcode = md5({amount}{merchantID}{orderID}{verify_key})
-    const vcodeRaw = `${amount}${this.merchantID}${orderID}${this.verifyKey}`;
+    // Correct formula (from working fiuu-node package): md5(orderID + amount + currency + verifyKey)
+    // Note: merchantID is NOT included in the hash (it's already in the URL path)
+    const vcodeRaw = `${orderID}${amount}${currency}${this.verifyKey}`;
     const vcode = this.md5(vcodeRaw);
 
     console.log('🔑 Fiuu vcode generation:');
-    console.log('  Formula: amount + merchantID + orderID + verifyKey');
+    console.log('  Formula: orderID + amount + currency + verifyKey');
     console.log('  Raw string:', vcodeRaw);
     console.log('  Generated vcode:', vcode);
     console.log('  Verify at: https://api.fiuu.com/RMS/query/vcode.php');
