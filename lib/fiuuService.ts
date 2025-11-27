@@ -102,7 +102,10 @@ export class FiuuService {
 
     // Force credit card channel selection
     // Sandbox uses 'creditAN', production uses 'credit'
-    formParams.channel = isSandbox ? 'creditAN' : 'credit';
+    const channelCode = isSandbox ? 'creditAN' : 'credit';
+    formParams.channel = channelCode;
+
+    console.log(`💳 Forcing payment channel: ${channelCode} (sandbox: ${isSandbox})`);
 
     // Only include bill_mobile if it has a value
     if (bill_mobile) {
@@ -115,13 +118,10 @@ export class FiuuService {
       formParams.notifyurl = notifyURL;
     }
 
-    // Per official Fiuu support response:
-    // Sandbox: use indexAN.php for credit cards
-    // Production: use index.php for all payment methods
-    // indexAN.php = credit card channel file (sandbox)
-    // index.php = all payment methods (production)
-    const channelFile = isSandbox ? 'indexAN.php' : 'index.php';
-    const action = `${this.baseURL}/RMS/pay/${this.merchantID}/${channelFile}`;
+    // Per official Fiuu support response, use index.php with channel parameter
+    // This is more flexible than using specific channel files (indexAN.php, etc.)
+    // The channel parameter (creditAN/credit) forces the payment method selection
+    const action = `${this.baseURL}/RMS/pay/${this.merchantID}/index.php`;
 
     return {
       action,
