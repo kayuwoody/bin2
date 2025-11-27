@@ -69,25 +69,29 @@ async function handleReturn(req: Request) {
     const isSuccess = fiuu.isPaymentSuccessful(status);
 
     // Redirect to appropriate page based on status
+    // Use 303 "See Other" to force browser to change POST to GET when following redirect
     if (isSuccess) {
       // Payment successful - redirect to success page
       return NextResponse.redirect(
-        new URL(`/payment/success?order=${orderid}&txn=${tranID}`, req.url)
+        new URL(`/payment/success?order=${orderid}&txn=${tranID}`, req.url),
+        303
       );
     } else if (status === '11') {
       // Payment failed - redirect to failed page
       return NextResponse.redirect(
-        new URL(`/payment/failed?order=${orderid}&status=${status}`, req.url)
+        new URL(`/payment/failed?order=${orderid}&status=${status}`, req.url),
+        303
       );
     } else {
       // Unknown status - redirect to error page
       return NextResponse.redirect(
-        new URL(`/payment/error?order=${orderid}&status=${status}`, req.url)
+        new URL(`/payment/error?order=${orderid}&status=${status}`, req.url),
+        303
       );
     }
   } catch (error: any) {
     console.error('❌ Payment return error:', error);
-    // Redirect to generic error page
-    return NextResponse.redirect(new URL('/payment/error', req.url));
+    // Redirect to generic error page (303 to change POST to GET)
+    return NextResponse.redirect(new URL('/payment/error', req.url), 303);
   }
 }
