@@ -19,14 +19,31 @@ export async function POST(req: Request) {
 async function handleReturn(req: Request) {
   try {
     const url = new URL(req.url);
+    let params: Record<string, string> = {};
 
-    // Extract parameters (Fiuu sends these)
-    const orderid = url.searchParams.get('orderid') || '';
-    const status = url.searchParams.get('status') || '';
-    const tranID = url.searchParams.get('tranID') || '';
-    const skey = url.searchParams.get('skey') || '';
+    // Fiuu can send parameters via GET (query params) or POST (form body)
+    if (req.method === 'POST') {
+      // For POST requests, read from form body
+      const formData = await req.formData();
+      params = {
+        orderid: formData.get('orderid')?.toString() || '',
+        status: formData.get('status')?.toString() || '',
+        tranID: formData.get('tranID')?.toString() || '',
+        skey: formData.get('skey')?.toString() || '',
+      };
+    } else {
+      // For GET requests, read from query params
+      params = {
+        orderid: url.searchParams.get('orderid') || '',
+        status: url.searchParams.get('status') || '',
+        tranID: url.searchParams.get('tranID') || '',
+        skey: url.searchParams.get('skey') || '',
+      };
+    }
 
-    console.log(`🔄 Customer returned from Fiuu for order ${orderid}, status: ${status}`);
+    const { orderid, status, tranID, skey } = params;
+
+    console.log(`🔄 Customer returned from Fiuu (${req.method}) for order ${orderid}, status: ${status}`);
 
     // Initialize Fiuu service
     const fiuu = getFiuuService();
