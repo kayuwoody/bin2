@@ -21,7 +21,7 @@ export class FiuuService {
     this.secretKey = secretKey;
     // Use sandbox URL for development, production URL for live
     this.baseURL = sandboxMode
-      ? "https://sandbox-payment.fiuu.com"
+      ? "https://sandbox.fiuu.com"
       : "https://pay.fiuu.com";
   }
 
