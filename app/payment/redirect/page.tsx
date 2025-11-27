@@ -41,6 +41,7 @@ function PaymentRedirectContent() {
   const callbackurl = searchParams.get("callbackurl");
   const notifyurl = searchParams.get("notifyurl");
   const vcode = searchParams.get("vcode");
+  const merchantID = searchParams.get("merchantID");
 
   useEffect(() => {
     // Auto-submit the form once on mount
@@ -81,13 +82,14 @@ function PaymentRedirectContent() {
           <input type="hidden" name="orderid" value={orderid || ""} />
           <input type="hidden" name="bill_name" value={bill_name || ""} />
           <input type="hidden" name="bill_email" value={bill_email || ""} />
-          <input type="hidden" name="bill_mobile" value={bill_mobile || ""} />
+          {bill_mobile && <input type="hidden" name="bill_mobile" value={bill_mobile} />}
           <input type="hidden" name="bill_desc" value={bill_desc || ""} />
           <input type="hidden" name="currency" value={currency || ""} />
           <input type="hidden" name="returnurl" value={returnurl || ""} />
           <input type="hidden" name="callbackurl" value={callbackurl || ""} />
           {notifyurl && <input type="hidden" name="notifyurl" value={notifyurl} />}
           <input type="hidden" name="vcode" value={vcode || ""} />
+          {merchantID && <input type="hidden" name="merchantID" value={merchantID} />}
         </form>
       </div>
     </div>
