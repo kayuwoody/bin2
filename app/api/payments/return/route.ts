@@ -21,17 +21,34 @@ async function handleReturn(req: Request) {
     const url = new URL(req.url);
     let params: Record<string, string> = {};
 
+    console.log(`🔄 Payment return received: ${req.method} ${req.url}`);
+
     // Fiuu can send parameters via GET (query params) or POST (form-urlencoded body)
     if (req.method === 'POST') {
-      // For POST requests, read from form-urlencoded body (same as notify/callback endpoints)
-      const body = await req.text();
-      const formParams = new URLSearchParams(body);
-      params = {
-        orderid: formParams.get('orderid') || '',
-        status: formParams.get('status') || '',
-        tranID: formParams.get('tranID') || '',
-        skey: formParams.get('skey') || '',
-      };
+      try {
+        // For POST requests, read from form-urlencoded body (same as notify/callback endpoints)
+        const body = await req.text();
+        console.log(`📦 POST body:`, body);
+
+        const formParams = new URLSearchParams(body);
+        params = {
+          orderid: formParams.get('orderid') || '',
+          status: formParams.get('status') || '',
+          tranID: formParams.get('tranID') || '',
+          skey: formParams.get('skey') || '',
+        };
+        console.log(`📋 Parsed POST params:`, params);
+      } catch (e) {
+        console.error('❌ Error parsing POST body:', e);
+        // Fall back to query params if POST parsing fails
+        params = {
+          orderid: url.searchParams.get('orderid') || '',
+          status: url.searchParams.get('status') || '',
+          tranID: url.searchParams.get('tranID') || '',
+          skey: url.searchParams.get('skey') || '',
+        };
+        console.log(`📋 Fallback to query params:`, params);
+      }
     } else {
       // For GET requests, read from query params
       params = {
@@ -40,6 +57,7 @@ async function handleReturn(req: Request) {
         tranID: url.searchParams.get('tranID') || '',
         skey: url.searchParams.get('skey') || '',
       };
+      console.log(`📋 GET query params:`, params);
     }
 
     const { orderid, status, tranID, skey } = params;
