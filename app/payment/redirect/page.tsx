@@ -42,7 +42,6 @@ function PaymentRedirectContent() {
   const notifyurl = searchParams.get("notifyurl");
   const vcode = searchParams.get("vcode");
   const merchantID = searchParams.get("merchantID");
-  const channel = searchParams.get("channel");
 
   useEffect(() => {
     // Auto-submit the form once on mount
@@ -50,18 +49,16 @@ function PaymentRedirectContent() {
       hasSubmitted.current = true;
       console.log("🚀 Auto-submitting payment form to Fiuu via POST");
       console.log("📋 Form action:", fiuuURL);
-      console.log("💳 Channel parameter:", channel);
       console.log("📦 All form data:", {
         amount,
         orderid,
         currency,
         merchantID,
-        channel,
         vcode,
       });
       formRef.current.submit();
     }
-  }, [fiuuURL, channel, amount, orderid, currency, merchantID, vcode]);
+  }, [fiuuURL, amount, orderid, currency, merchantID, vcode]);
 
   if (!fiuuURL) {
     return (
@@ -101,7 +98,6 @@ function PaymentRedirectContent() {
           {notifyurl && <input type="hidden" name="notifyurl" value={notifyurl} />}
           <input type="hidden" name="vcode" value={vcode || ""} />
           {merchantID && <input type="hidden" name="merchantID" value={merchantID} />}
-          {channel && <input type="hidden" name="channel" value={channel} />}
         </form>
       </div>
     </div>

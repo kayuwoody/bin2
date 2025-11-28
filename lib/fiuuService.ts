@@ -108,19 +108,16 @@ export class FiuuService {
       formParams.notifyurl = notifyURL;
     }
 
-    // IMPORTANT: Add channel parameter LAST (at the end of the URL)
-    // Per Fiuu support example, channel must be the final parameter
-    // Sandbox uses 'creditAN', production uses 'credit'
+    // Per Fiuu support: Use channel-specific file for credit card forcing
+    // Option 1 (using this): indexAN.php for sandbox credit cards
+    // Option 2 (didn't work): channel parameter
+    // Sandbox: indexAN.php, Production: index.php (all methods)
     const isSandbox = this.baseURL.includes('sandbox-payment');
-    const channelCode = isSandbox ? 'creditAN' : 'credit';
-    formParams.channel = channelCode;
+    const channelFile = isSandbox ? 'indexAN.php' : 'index.php';
+    const action = `${this.baseURL}/RMS/pay/${this.merchantID}/${channelFile}`;
 
-    console.log(`💳 Forcing payment channel: ${channelCode} (sandbox: ${isSandbox})`);
-
-    // Per official Fiuu support response, use trailing slash (no filename)
-    // The channel parameter (creditAN/credit) forces the payment method selection
-    // Example from Fiuu: https://sandbox-payment.fiuu.com/RMS/pay/SB_coffeeoasisplt/
-    const action = `${this.baseURL}/RMS/pay/${this.merchantID}/`;
+    console.log(`💳 Using channel file: ${channelFile} (sandbox: ${isSandbox})`);
+    console.log(`📋 Payment action URL: ${action}`);
 
     return {
       action,
