@@ -118,10 +118,10 @@ export class FiuuService {
       formParams.notifyurl = notifyURL;
     }
 
-    // Per official Fiuu support response, use index.php with channel parameter
-    // This is more flexible than using specific channel files (indexAN.php, etc.)
+    // Per official Fiuu support response, use trailing slash (no filename)
     // The channel parameter (creditAN/credit) forces the payment method selection
-    const action = `${this.baseURL}/RMS/pay/${this.merchantID}/index.php`;
+    // Example from Fiuu: https://sandbox-payment.fiuu.com/RMS/pay/SB_coffeeoasisplt/
+    const action = `${this.baseURL}/RMS/pay/${this.merchantID}/`;
 
     return {
       action,
