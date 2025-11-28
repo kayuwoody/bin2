@@ -97,16 +97,6 @@ export class FiuuService {
       merchantID: this.merchantID,
     };
 
-    // Determine if we're in sandbox mode
-    const isSandbox = this.baseURL.includes('sandbox-payment');
-
-    // Force credit card channel selection
-    // Sandbox uses 'creditAN', production uses 'credit'
-    const channelCode = isSandbox ? 'creditAN' : 'credit';
-    formParams.channel = channelCode;
-
-    console.log(`💳 Forcing payment channel: ${channelCode} (sandbox: ${isSandbox})`);
-
     // Only include bill_mobile if it has a value
     if (bill_mobile) {
       formParams.bill_mobile = bill_mobile;
@@ -117,6 +107,15 @@ export class FiuuService {
     if (notifyURL) {
       formParams.notifyurl = notifyURL;
     }
+
+    // IMPORTANT: Add channel parameter LAST (at the end of the URL)
+    // Per Fiuu support example, channel must be the final parameter
+    // Sandbox uses 'creditAN', production uses 'credit'
+    const isSandbox = this.baseURL.includes('sandbox-payment');
+    const channelCode = isSandbox ? 'creditAN' : 'credit';
+    formParams.channel = channelCode;
+
+    console.log(`💳 Forcing payment channel: ${channelCode} (sandbox: ${isSandbox})`);
 
     // Per official Fiuu support response, use trailing slash (no filename)
     // The channel parameter (creditAN/credit) forces the payment method selection
