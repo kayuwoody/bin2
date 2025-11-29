@@ -109,14 +109,13 @@ export class FiuuService {
     }
 
     // Per Fiuu support: Use channel-specific file for credit card forcing
-    // Option 1 (using this): indexAN.php for sandbox credit cards
+    // Using indexAN.php for both sandbox and production to force credit card selection
+    // Option 1 (using this): indexAN.php file approach
     // Option 2 (didn't work): channel parameter
-    // Sandbox: indexAN.php, Production: index.php (all methods)
-    const isSandbox = this.baseURL.includes('sandbox-payment');
-    const channelFile = isSandbox ? 'indexAN.php' : 'index.php';
+    const channelFile = 'indexAN.php';
     const action = `${this.baseURL}/RMS/pay/${this.merchantID}/${channelFile}`;
 
-    console.log(`💳 Using channel file: ${channelFile} (sandbox: ${isSandbox})`);
+    console.log(`💳 Using channel file: ${channelFile}`);
     console.log(`📋 Payment action URL: ${action}`);
 
     return {
