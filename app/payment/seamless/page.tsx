@@ -144,13 +144,20 @@ function SeamlessPaymentContent() {
       }
 
       console.log('✅ Button created with data attributes - Fiuu will auto-activate');
-      console.log('📋 Button attributes:', {
+      console.log('📋 All button attributes:', {
         'data-toggle': payBtn.getAttribute('data-toggle'),
         'data-mpsmerchantid': payBtn.getAttribute('data-mpsmerchantid'),
         'data-mpschannel': payBtn.getAttribute('data-mpschannel'),
         'data-mpsamount': payBtn.getAttribute('data-mpsamount'),
         'data-mpsorderid': payBtn.getAttribute('data-mpsorderid'),
+        'data-mpsbill_name': payBtn.getAttribute('data-mpsbill_name'),
+        'data-mpsbill_email': payBtn.getAttribute('data-mpsbill_email'),
+        'data-mpscurrency': payBtn.getAttribute('data-mpscurrency'),
+        'data-mpsvcode': payBtn.getAttribute('data-mpsvcode'),
+        'data-mpsreturnurl': payBtn.getAttribute('data-mpsreturnurl'),
+        'data-mpscallbackurl': payBtn.getAttribute('data-mpscallbackurl'),
       });
+      console.log('🔍 Raw params received:', params);
       console.log('⏳ Click the button to trigger payment popup...');
 
       // Add debug click listener to see if button is clickable
