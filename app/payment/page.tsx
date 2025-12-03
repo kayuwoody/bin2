@@ -5,10 +5,11 @@ import { useRouter } from "next/navigation";
 import { useCart } from "@/context/cartContext";
 import QRCode from "react-qr-code";
 
-// Declare Fiuu Seamless types
+// Declare Fiuu Seamless types (jQuery-based)
 declare global {
   interface Window {
-    FiuuSeamless: any;
+    $: any;
+    jQuery: any;
   }
 }
 
@@ -23,7 +24,6 @@ export default function PaymentPage() {
   const [fiuuSeamlessReady, setFiuuSeamlessReady] = useState(false);
   const [fiuuConfig, setFiuuConfig] = useState<any>(null);
   const qrRef = useRef<HTMLDivElement>(null);
-  const fiuuInstance = useRef<any>(null);
   const scriptLoaded = useRef(false);
 
   // Calculate total (using finalPrice which includes discounts)
@@ -47,7 +47,7 @@ export default function PaymentPage() {
     }
   }, [cartItems, order]); // Re-run when cart or order changes
 
-  // Fetch Fiuu config and load script
+  // Fetch Fiuu config and load scripts (jQuery + Fiuu Seamless)
   useEffect(() => {
     const initFiuu = async () => {
       try {
@@ -64,21 +64,43 @@ export default function PaymentPage() {
         });
         setFiuuConfig(config);
 
-        // Load Fiuu Seamless script dynamically
+        // Load scripts dynamically (jQuery first, then Fiuu)
         if (!scriptLoaded.current) {
-          console.log('📦 Loading Fiuu Seamless script:', config.scriptUrl);
-          const script = document.createElement('script');
-          script.src = config.scriptUrl;
-          script.async = true;
-          script.onload = () => {
-            console.log('✅ Fiuu Seamless script loaded');
-            handleFiuuScriptLoad(config);
+          console.log('📦 Loading jQuery...');
+
+          // Load jQuery first
+          const jquery = document.createElement('script');
+          jquery.src = config.jqueryUrl;
+          jquery.async = false; // Load sequentially
+
+          jquery.onload = () => {
+            console.log('✅ jQuery loaded');
+
+            // Then load Fiuu Seamless script
+            console.log('📦 Loading Fiuu Seamless script...');
+            const fiuuScript = document.createElement('script');
+            fiuuScript.src = config.fiuuScriptUrl;
+            fiuuScript.async = false;
+
+            fiuuScript.onload = () => {
+              console.log('✅ Fiuu Seamless script loaded');
+              setFiuuSeamlessReady(true);
+            };
+
+            fiuuScript.onerror = () => {
+              console.error('❌ Failed to load Fiuu Seamless script');
+              setError('Failed to load payment gateway. Please refresh the page.');
+            };
+
+            document.body.appendChild(fiuuScript);
           };
-          script.onerror = () => {
-            console.error('❌ Failed to load Fiuu Seamless script');
+
+          jquery.onerror = () => {
+            console.error('❌ Failed to load jQuery');
             setError('Failed to load payment gateway. Please refresh the page.');
           };
-          document.body.appendChild(script);
+
+          document.body.appendChild(jquery);
           scriptLoaded.current = true;
         }
       } catch (err) {
@@ -89,28 +111,6 @@ export default function PaymentPage() {
 
     initFiuu();
   }, []); // Run once on mount
-
-  // Initialize Fiuu Seamless when script loads
-  const handleFiuuScriptLoad = (config: any) => {
-    if (typeof window !== 'undefined' && window.FiuuSeamless) {
-      console.log('🔧 Initializing Fiuu Seamless instance...');
-      try {
-        fiuuInstance.current = new window.FiuuSeamless({
-          merchantId: config.merchantId,
-          verifyUrl: config.verifyUrl,
-        });
-
-        setFiuuSeamlessReady(true);
-        console.log('✅ Fiuu Seamless initialized successfully');
-      } catch (err) {
-        console.error('❌ Failed to initialize Fiuu Seamless:', err);
-        setError('Failed to initialize payment gateway. Please refresh the page.');
-      }
-    } else {
-      console.error('❌ window.FiuuSeamless not available');
-      setError('Payment gateway not available. Please refresh the page.');
-    }
-  };
 
   // Download QR code as image
   const downloadQRCode = () => {
@@ -243,7 +243,7 @@ export default function PaymentPage() {
       // If credit card payment, use Fiuu Seamless popup
       if (method === "credit_card") {
         // Check if Fiuu Seamless is ready
-        if (!fiuuSeamlessReady || !fiuuInstance.current) {
+        if (!fiuuSeamlessReady || !window.$) {
           throw new Error("Payment gateway is still loading. Please try again in a moment.");
         }
 
@@ -268,23 +268,34 @@ export default function PaymentPage() {
           console.log('🚀 Launching Fiuu Seamless payment popup');
           console.log('📦 Payment params:', paymentData.formData.params);
 
-          // Launch Fiuu Seamless payment popup
-          // This will show the payment form directly without channel selection
-          fiuuInstance.current.pay(paymentData.formData.params, {
-            onSuccess: () => {
-              console.log('✅ Payment completed successfully');
-              // Fiuu will redirect to returnURL automatically
-            },
-            onError: (error: any) => {
-              console.error('❌ Payment error:', error);
-              setError(error.message || 'Payment failed. Please try again.');
-              setLoading(false);
-            },
-            onClose: () => {
-              console.log('🔄 Payment popup closed by user');
-              setLoading(false);
-            }
+          // Create a temporary element to trigger the seamless popup
+          const tempBtn = document.createElement('button');
+          tempBtn.id = 'fiuu-seamless-trigger';
+          tempBtn.style.display = 'none';
+          document.body.appendChild(tempBtn);
+
+          // Launch Fiuu Seamless using jQuery plugin
+          // Use creditAN channel to force credit card directly
+          window.$(tempBtn).molpayseamless({
+            mpsmerchantid: paymentData.formData.params.merchantID,
+            mpschannel: 'creditAN', // Force credit card channel
+            mpsamount: paymentData.formData.params.amount,
+            mpsorderid: paymentData.formData.params.orderid,
+            mpsbill_name: paymentData.formData.params.bill_name,
+            mpsbill_email: paymentData.formData.params.bill_email,
+            mpsbill_mobile: paymentData.formData.params.bill_mobile || '',
+            mpsbill_desc: paymentData.formData.params.bill_desc,
+            mpscurrency: paymentData.formData.params.currency,
+            mpsvcode: paymentData.formData.params.vcode,
+            mpsreturnurl: paymentData.formData.params.returnurl,
+            mpscallbackurl: paymentData.formData.params.callbackurl,
           });
+
+          // Trigger click to open popup
+          setTimeout(() => {
+            tempBtn.click();
+            console.log('✅ Fiuu Seamless popup triggered');
+          }, 100);
 
           return; // Don't continue to render below
         } else {
