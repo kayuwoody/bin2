@@ -283,15 +283,22 @@ export default function PaymentPage() {
             throw new Error('Fiuu Seamless plugin not loaded. Please refresh the page.');
           }
 
-          // Create a temporary element to trigger the seamless popup
-          const tempBtn = document.createElement('button');
-          tempBtn.id = 'fiuu-seamless-trigger';
-          tempBtn.style.display = 'none';
-          document.body.appendChild(tempBtn);
+          // Create a button element for the seamless popup
+          const payBtn = document.createElement('button');
+          payBtn.type = 'button';
+          payBtn.id = 'fiuu-seamless-trigger';
+          payBtn.textContent = 'Processing Payment...';
 
-          // Launch Fiuu Seamless using jQuery plugin
+          // Position it off-screen but keep it in the document
+          payBtn.style.position = 'absolute';
+          payBtn.style.left = '-9999px';
+          document.body.appendChild(payBtn);
+
+          console.log('🔧 Initializing MOLPaySeamless plugin...');
+
+          // Initialize Fiuu Seamless using jQuery plugin
           // Use creditAN channel to force credit card directly
-          window.$(tempBtn).MOLPaySeamless({
+          window.$(payBtn).MOLPaySeamless({
             mpsmerchantid: paymentData.formData.params.merchantID,
             mpschannel: 'creditAN', // Force credit card channel
             mpsamount: paymentData.formData.params.amount,
@@ -306,11 +313,21 @@ export default function PaymentPage() {
             mpscallbackurl: paymentData.formData.params.callbackurl,
           });
 
-          // Trigger click to open popup
+          console.log('✅ Plugin initialized, triggering popup in 500ms...');
+
+          // Wait for plugin initialization, then trigger popup
           setTimeout(() => {
-            tempBtn.click();
-            console.log('✅ Fiuu Seamless popup triggered');
-          }, 100);
+            console.log('🎯 Triggering button click...');
+            // Use native DOM click instead of jQuery
+            payBtn.click();
+
+            // Clean up button after a delay
+            setTimeout(() => {
+              if (payBtn.parentNode) {
+                document.body.removeChild(payBtn);
+              }
+            }, 1000);
+          }, 500);
 
           return; // Don't continue to render below
         } else {
