@@ -103,26 +103,28 @@ function SeamlessPaymentContent() {
   const triggerPayment = (params: any) => {
     paymentTriggered.current = true;
 
-    console.log('🚀 Triggering seamless payment...');
+    console.log('🚀 Preparing seamless payment...');
     console.log('📦 Params:', params);
 
-    // Create button for seamless
+    // Create VISIBLE button for user to click (popup blockers require real user interaction)
     const payBtn = document.createElement('button');
     payBtn.type = 'button';
     payBtn.id = `molpay-seamless-${params.orderid}`;
-    payBtn.textContent = 'Pay Now';
+    payBtn.textContent = 'Click to Pay';
+    payBtn.className = 'px-8 py-4 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors text-lg font-semibold shadow-lg';
 
-    // Position off-screen but keep in DOM flow
-    payBtn.style.position = 'absolute';
-    payBtn.style.left = '-9999px';
-    payBtn.style.top = '0';
-
-    document.body.appendChild(payBtn);
+    // Add to the UI container
+    const container = document.getElementById('payment-button-container');
+    if (container) {
+      container.appendChild(payBtn);
+    } else {
+      document.body.appendChild(payBtn);
+    }
 
     console.log('✅ Button created');
     console.log('🔧 Initializing MOLPaySeamless with JavaScript...');
 
-    // Use jQuery to initialize MOLPaySeamless (not data attributes)
+    // Use jQuery to initialize MOLPaySeamless
     window.$(payBtn).MOLPaySeamless({
       mpsmerchantid: params.merchantID,
       mpschannel: params.channel,
@@ -138,15 +140,8 @@ function SeamlessPaymentContent() {
       mpscallbackurl: params.callbackurl,
     });
 
-    console.log('✅ MOLPaySeamless initialized with params');
-
-    // Auto-trigger popup
-    setTimeout(() => {
-      console.log('🎯 Clicking button to trigger popup...');
-      payBtn.click();
-      console.log('✅ Button clicked');
-      setLoading(false);
-    }, 1000);
+    console.log('✅ MOLPaySeamless initialized - waiting for user to click button');
+    setLoading(false);
   };
 
   return (
@@ -178,13 +173,19 @@ function SeamlessPaymentContent() {
 
         {!loading && !error && (
           <>
-            <div className="text-green-500 text-5xl mb-4">💳</div>
-            <h1 className="text-2xl font-bold text-gray-900 mb-2">Payment Window Ready</h1>
-            <p className="text-gray-600 mb-4">
-              Complete your payment in the popup window.
+            <div className="text-purple-500 text-5xl mb-4">💳</div>
+            <h1 className="text-2xl font-bold text-gray-900 mb-4">Ready to Pay</h1>
+            <p className="text-gray-600 mb-6">
+              Click the button below to open the payment window.
             </p>
+
+            {/* Button will be inserted here */}
+            <div id="payment-button-container" className="mb-6"></div>
+
             <p className="text-sm text-gray-500">
-              You can close this tab after payment is complete.
+              A popup window will appear with the payment form.
+              <br />
+              You can close this tab after completing payment.
             </p>
           </>
         )}
