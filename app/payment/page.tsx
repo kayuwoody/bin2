@@ -36,61 +36,6 @@ export default function PaymentPage() {
     }
   }, [cartItems, order]); // Re-run when cart or order changes
 
-  // Load Fiuu Seamless scripts
-  useEffect(() => {
-    const loadSeamlessScripts = async () => {
-      if (scriptsLoaded.current) return;
-
-      try {
-        console.log('📡 Fetching Fiuu seamless configuration...');
-        const configResponse = await fetch('/api/payments/config');
-        if (!configResponse.ok) {
-          throw new Error('Failed to fetch Fiuu config');
-        }
-
-        const config = await configResponse.json();
-        console.log('✅ Fiuu config loaded');
-
-        // Load jQuery first
-        console.log('📦 Loading jQuery...');
-        await loadScript(config.jqueryUrl);
-        console.log('✅ jQuery loaded');
-
-        // Then load Fiuu Seamless plugin
-        console.log('📦 Loading Fiuu Seamless plugin...');
-        await loadScript(config.fiuuScriptUrl);
-        console.log('✅ Fiuu Seamless plugin loaded');
-
-        // Verify MOLPaySeamless plugin is available
-        if (window.$ && typeof window.$.fn.MOLPaySeamless === 'function') {
-          console.log('✅ MOLPaySeamless verified and ready');
-          setSeamlessReady(true);
-        } else {
-          throw new Error('MOLPaySeamless plugin not found');
-        }
-
-        scriptsLoaded.current = true;
-      } catch (err) {
-        console.error('❌ Failed to load seamless scripts:', err);
-        setError('Failed to load payment gateway. Please refresh the page.');
-      }
-    };
-
-    loadSeamlessScripts();
-  }, []);
-
-  // Helper function to load scripts
-  const loadScript = (src: string): Promise<void> => {
-    return new Promise((resolve, reject) => {
-      const script = document.createElement('script');
-      script.src = src;
-      script.async = false;
-      script.onload = () => resolve();
-      script.onerror = () => reject(new Error(`Failed to load script: ${src}`));
-      document.body.appendChild(script);
-    });
-  };
-
   // Download QR code as image
   const downloadQRCode = () => {
     const svg = qrRef.current?.querySelector('svg');
@@ -219,12 +164,8 @@ export default function PaymentPage() {
         }),
       });
 
-      // If credit card payment, use Fiuu Seamless integration
+      // If credit card payment, open Fiuu Seamless in new tab
       if (method === "credit_card") {
-        if (!seamlessReady) {
-          throw new Error("Payment gateway is still loading. Please wait a moment and try again.");
-        }
-
         // Get payment parameters from API
         const paymentResponse = await fetch("/api/payments/initiate", {
           method: "POST",
@@ -243,53 +184,41 @@ export default function PaymentPage() {
         const paymentData = await paymentResponse.json();
 
         if (paymentData.success && paymentData.formData) {
-          console.log('🚀 Launching Fiuu Seamless payment');
+          console.log('🚀 Opening Fiuu Seamless payment in new tab');
           console.log('📦 Payment params:', paymentData.formData.params);
-
-          // Create hidden button for seamless trigger
-          const payBtn = document.createElement('button');
-          payBtn.type = 'button';
-          payBtn.id = `molpay-btn-${data.order.id}`;
-          payBtn.style.display = 'none';
-          document.body.appendChild(payBtn);
 
           const params = paymentData.formData.params;
 
-          // Initialize MOLPaySeamless on the button
-          console.log('🔧 Initializing MOLPaySeamless...');
-          window.$(payBtn).MOLPaySeamless({
-            mpsmerchantid: params.merchantID,
-            mpschannel: params.channel, // Use channel from form params (creditAN)
-            mpsamount: params.amount,
-            mpsorderid: params.orderid,
-            mpsbill_name: params.bill_name,
-            mpsbill_email: params.bill_email,
-            mpsbill_mobile: params.bill_mobile || '',
-            mpsbill_desc: params.bill_desc,
-            mpscurrency: params.currency,
-            mpsvcode: params.vcode,
-            mpsreturnurl: params.returnurl,
-            mpscallbackurl: params.callbackurl,
-          });
+          // Build URL for seamless page with all payment parameters
+          const seamlessURL = new URL('/payment/seamless', window.location.origin);
+          seamlessURL.searchParams.set('merchantID', params.merchantID);
+          seamlessURL.searchParams.set('channel', params.channel);
+          seamlessURL.searchParams.set('amount', params.amount);
+          seamlessURL.searchParams.set('orderid', params.orderid);
+          seamlessURL.searchParams.set('bill_name', params.bill_name);
+          seamlessURL.searchParams.set('bill_email', params.bill_email);
+          seamlessURL.searchParams.set('bill_mobile', params.bill_mobile || '');
+          seamlessURL.searchParams.set('bill_desc', params.bill_desc);
+          seamlessURL.searchParams.set('currency', params.currency);
+          seamlessURL.searchParams.set('vcode', params.vcode);
+          seamlessURL.searchParams.set('returnurl', params.returnurl);
+          seamlessURL.searchParams.set('callbackurl', params.callbackurl);
 
-          console.log('✅ MOLPaySeamless initialized');
-          console.log('🎯 Triggering seamless payment popup...');
+          console.log('🔗 Seamless URL:', seamlessURL.toString());
 
-          // Trigger the button to open seamless popup
-          setTimeout(() => {
-            payBtn.click();
-            console.log('✅ Seamless popup triggered');
+          // Open seamless page in new tab
+          const seamlessWindow = window.open(seamlessURL.toString(), '_blank');
 
-            // Clean up button after delay
-            setTimeout(() => {
-              if (payBtn.parentNode) {
-                document.body.removeChild(payBtn);
-              }
-            }, 2000);
-          }, 300);
+          if (!seamlessWindow) {
+            throw new Error("Unable to open payment window. Please allow popups and try again.");
+          }
 
-          // Keep loading state - user will complete payment in popup
-          // Fiuu will handle redirect to return URL after payment
+          console.log('✅ Seamless payment tab opened');
+
+          // Show message to user
+          setError(null);
+          setLoading(false);
+
           return;
         } else {
           throw new Error("Failed to generate payment parameters");
@@ -464,25 +393,16 @@ export default function PaymentPage() {
 
           <button
             onClick={() => handlePaymentMethodSelect("credit_card")}
-            disabled={!seamlessReady}
-            className={`w-full p-4 rounded-lg transition-colors flex items-center justify-between ${
-              seamlessReady
-                ? 'bg-purple-600 text-white hover:bg-purple-700'
-                : 'bg-gray-300 text-gray-500 cursor-not-allowed'
-            }`}
+            className="w-full p-4 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors flex items-center justify-between"
           >
             <span className="flex items-center gap-3">
               <span className="text-2xl">💳</span>
               <div className="text-left">
                 <p className="font-semibold">Credit / Debit Card</p>
-                <p className={`text-sm ${seamlessReady ? 'text-purple-100' : 'text-gray-400'}`}>
-                  {seamlessReady
-                    ? 'Pay with card or e-wallet'
-                    : 'Loading payment gateway...'}
-                </p>
+                <p className="text-sm text-purple-100">Pay with card or e-wallet</p>
               </div>
             </span>
-            <span className="text-2xl">{seamlessReady ? '→' : '⏳'}</span>
+            <span className="text-2xl">→</span>
           </button>
         </div>
 
