@@ -4,8 +4,6 @@ import { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { useCart } from "@/context/cartContext";
 import QRCode from "react-qr-code";
-import Script from "next/script";
-import { getFiuuService } from "@/lib/fiuuService";
 
 // Declare Fiuu Seamless types
 declare global {
@@ -23,8 +21,10 @@ export default function PaymentPage() {
   const [paymentMethod, setPaymentMethod] = useState<"bank_qr" | "credit_card" | null>(null);
   const [showQRCode, setShowQRCode] = useState(false);
   const [fiuuSeamlessReady, setFiuuSeamlessReady] = useState(false);
+  const [fiuuConfig, setFiuuConfig] = useState<any>(null);
   const qrRef = useRef<HTMLDivElement>(null);
   const fiuuInstance = useRef<any>(null);
+  const scriptLoaded = useRef(false);
 
   // Calculate total (using finalPrice which includes discounts)
   const retailTotal = cartItems.reduce((sum, item) => sum + item.retailPrice * item.quantity, 0);
@@ -47,22 +47,68 @@ export default function PaymentPage() {
     }
   }, [cartItems, order]); // Re-run when cart or order changes
 
+  // Fetch Fiuu config and load script
+  useEffect(() => {
+    const initFiuu = async () => {
+      try {
+        console.log('📡 Fetching Fiuu configuration...');
+        const configResponse = await fetch('/api/payments/config');
+        if (!configResponse.ok) {
+          throw new Error('Failed to fetch Fiuu config');
+        }
+
+        const config = await configResponse.json();
+        console.log('✅ Fiuu config loaded:', {
+          merchantId: config.merchantId,
+          sandboxMode: config.sandboxMode
+        });
+        setFiuuConfig(config);
+
+        // Load Fiuu Seamless script dynamically
+        if (!scriptLoaded.current) {
+          console.log('📦 Loading Fiuu Seamless script:', config.scriptUrl);
+          const script = document.createElement('script');
+          script.src = config.scriptUrl;
+          script.async = true;
+          script.onload = () => {
+            console.log('✅ Fiuu Seamless script loaded');
+            handleFiuuScriptLoad(config);
+          };
+          script.onerror = () => {
+            console.error('❌ Failed to load Fiuu Seamless script');
+            setError('Failed to load payment gateway. Please refresh the page.');
+          };
+          document.body.appendChild(script);
+          scriptLoaded.current = true;
+        }
+      } catch (err) {
+        console.error('❌ Failed to initialize Fiuu:', err);
+        setError('Failed to initialize payment gateway. Please refresh the page.');
+      }
+    };
+
+    initFiuu();
+  }, []); // Run once on mount
+
   // Initialize Fiuu Seamless when script loads
-  const handleFiuuScriptLoad = () => {
+  const handleFiuuScriptLoad = (config: any) => {
     if (typeof window !== 'undefined' && window.FiuuSeamless) {
-      const merchantId = process.env.NEXT_PUBLIC_FIUU_MERCHANT_ID || 'SB_coffeeoasisplt';
-      const isSandbox = process.env.NEXT_PUBLIC_FIUU_SANDBOX_MODE === 'true';
-      const verifyUrl = isSandbox
-        ? 'https://sandbox-payment.fiuu.com/RMS/verify'
-        : 'https://payment.fiuu.com/RMS/verify';
+      console.log('🔧 Initializing Fiuu Seamless instance...');
+      try {
+        fiuuInstance.current = new window.FiuuSeamless({
+          merchantId: config.merchantId,
+          verifyUrl: config.verifyUrl,
+        });
 
-      fiuuInstance.current = new window.FiuuSeamless({
-        merchantId: merchantId,
-        verifyUrl: verifyUrl,
-      });
-
-      setFiuuSeamlessReady(true);
-      console.log('✅ Fiuu Seamless initialized');
+        setFiuuSeamlessReady(true);
+        console.log('✅ Fiuu Seamless initialized successfully');
+      } catch (err) {
+        console.error('❌ Failed to initialize Fiuu Seamless:', err);
+        setError('Failed to initialize payment gateway. Please refresh the page.');
+      }
+    } else {
+      console.error('❌ window.FiuuSeamless not available');
+      setError('Payment gateway not available. Please refresh the page.');
     }
   };
 
@@ -368,20 +414,8 @@ export default function PaymentPage() {
 
   // Payment method selection screen
   return (
-    <>
-      {/* Load Fiuu Seamless script */}
-      <Script
-        src={
-          process.env.NEXT_PUBLIC_FIUU_SANDBOX_MODE === 'true'
-            ? "https://sandbox-payment.fiuu.com/SeamlessPayment/fiuu-seamless.min.js"
-            : "https://payment.fiuu.com/SeamlessPayment/fiuu-seamless.min.js"
-        }
-        onLoad={handleFiuuScriptLoad}
-        strategy="lazyOnload"
-      />
-
-      <div className="min-h-screen bg-gray-100 flex items-center justify-center p-4">
-        <div className="bg-white rounded-lg shadow-lg p-8 max-w-md w-full">
+    <div className="min-h-screen bg-gray-100 flex items-center justify-center p-4">
+      <div className="bg-white rounded-lg shadow-lg p-8 max-w-md w-full">
         {/* Header */}
         <h1 className="text-2xl font-bold text-gray-900 mb-2">Select Payment Method</h1>
         <p className="text-gray-600 mb-6">How will the customer pay?</p>
@@ -426,16 +460,25 @@ export default function PaymentPage() {
 
           <button
             onClick={() => handlePaymentMethodSelect("credit_card")}
-            className="w-full p-4 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors flex items-center justify-between"
+            disabled={!fiuuSeamlessReady}
+            className={`w-full p-4 rounded-lg transition-colors flex items-center justify-between ${
+              fiuuSeamlessReady
+                ? 'bg-purple-600 text-white hover:bg-purple-700'
+                : 'bg-gray-300 text-gray-500 cursor-not-allowed'
+            }`}
           >
             <span className="flex items-center gap-3">
               <span className="text-2xl">💳</span>
               <div className="text-left">
                 <p className="font-semibold">Credit / Debit Card</p>
-                <p className="text-sm text-purple-100">Pay with card or e-wallet</p>
+                <p className={`text-sm ${fiuuSeamlessReady ? 'text-purple-100' : 'text-gray-400'}`}>
+                  {fiuuSeamlessReady
+                    ? 'Pay with card or e-wallet'
+                    : 'Loading payment gateway...'}
+                </p>
               </div>
             </span>
-            <span className="text-2xl">→</span>
+            <span className="text-2xl">{fiuuSeamlessReady ? '→' : '⏳'}</span>
           </button>
         </div>
 
@@ -448,6 +491,5 @@ export default function PaymentPage() {
         </button>
       </div>
     </div>
-    </>
   );
 }
