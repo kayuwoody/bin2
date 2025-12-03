@@ -47,6 +47,25 @@ export default function PaymentPage() {
     }
   }, [cartItems, order]); // Re-run when cart or order changes
 
+  // Initialize Fiuu Seamless when script loads
+  const handleFiuuScriptLoad = () => {
+    if (typeof window !== 'undefined' && window.FiuuSeamless) {
+      const merchantId = process.env.NEXT_PUBLIC_FIUU_MERCHANT_ID || 'SB_coffeeoasisplt';
+      const isSandbox = process.env.NEXT_PUBLIC_FIUU_SANDBOX_MODE === 'true';
+      const verifyUrl = isSandbox
+        ? 'https://sandbox-payment.fiuu.com/RMS/verify'
+        : 'https://payment.fiuu.com/RMS/verify';
+
+      fiuuInstance.current = new window.FiuuSeamless({
+        merchantId: merchantId,
+        verifyUrl: verifyUrl,
+      });
+
+      setFiuuSeamlessReady(true);
+      console.log('✅ Fiuu Seamless initialized');
+    }
+  };
+
   // Download QR code as image
   const downloadQRCode = () => {
     const svg = qrRef.current?.querySelector('svg');
@@ -175,8 +194,14 @@ export default function PaymentPage() {
         }),
       });
 
-      // If credit card payment, redirect to Fiuu payment page
+      // If credit card payment, use Fiuu Seamless popup
       if (method === "credit_card") {
+        // Check if Fiuu Seamless is ready
+        if (!fiuuSeamlessReady || !fiuuInstance.current) {
+          throw new Error("Payment gateway is still loading. Please try again in a moment.");
+        }
+
+        // Get payment parameters from API
         const paymentResponse = await fetch("/api/payments/initiate", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -184,7 +209,7 @@ export default function PaymentPage() {
             orderID: data.order.id,
             amount: finalTotal.toFixed(2),
             currency: "MYR",
-            paymentMethod: "credit", // Show all payment methods on Fiuu page
+            paymentMethod: "credit",
             customerName: "Coffee Oasis Customer",
             customerEmail: "customer@coffee-oasis.com.my",
             description: `Order #${data.order.id}`,
@@ -193,12 +218,31 @@ export default function PaymentPage() {
 
         const paymentData = await paymentResponse.json();
 
-        if (paymentData.success && paymentData.paymentURL) {
-          // Redirect to Fiuu payment page
-          window.location.href = paymentData.paymentURL;
+        if (paymentData.success && paymentData.formData) {
+          console.log('🚀 Launching Fiuu Seamless payment popup');
+          console.log('📦 Payment params:', paymentData.formData.params);
+
+          // Launch Fiuu Seamless payment popup
+          // This will show the payment form directly without channel selection
+          fiuuInstance.current.pay(paymentData.formData.params, {
+            onSuccess: () => {
+              console.log('✅ Payment completed successfully');
+              // Fiuu will redirect to returnURL automatically
+            },
+            onError: (error: any) => {
+              console.error('❌ Payment error:', error);
+              setError(error.message || 'Payment failed. Please try again.');
+              setLoading(false);
+            },
+            onClose: () => {
+              console.log('🔄 Payment popup closed by user');
+              setLoading(false);
+            }
+          });
+
           return; // Don't continue to render below
         } else {
-          throw new Error("Failed to generate payment URL");
+          throw new Error("Failed to generate payment parameters");
         }
       }
 
@@ -324,8 +368,20 @@ export default function PaymentPage() {
 
   // Payment method selection screen
   return (
-    <div className="min-h-screen bg-gray-100 flex items-center justify-center p-4">
-      <div className="bg-white rounded-lg shadow-lg p-8 max-w-md w-full">
+    <>
+      {/* Load Fiuu Seamless script */}
+      <Script
+        src={
+          process.env.NEXT_PUBLIC_FIUU_SANDBOX_MODE === 'true'
+            ? "https://sandbox-payment.fiuu.com/SeamlessPayment/fiuu-seamless.min.js"
+            : "https://payment.fiuu.com/SeamlessPayment/fiuu-seamless.min.js"
+        }
+        onLoad={handleFiuuScriptLoad}
+        strategy="lazyOnload"
+      />
+
+      <div className="min-h-screen bg-gray-100 flex items-center justify-center p-4">
+        <div className="bg-white rounded-lg shadow-lg p-8 max-w-md w-full">
         {/* Header */}
         <h1 className="text-2xl font-bold text-gray-900 mb-2">Select Payment Method</h1>
         <p className="text-gray-600 mb-6">How will the customer pay?</p>
@@ -392,5 +448,6 @@ export default function PaymentPage() {
         </button>
       </div>
     </div>
+    </>
   );
 }
