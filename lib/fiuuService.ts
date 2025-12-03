@@ -95,6 +95,8 @@ export class FiuuService {
       vcode,
       // Add merchantID as parameter (in addition to URL path)
       merchantID: this.merchantID,
+      // Try forcing channel via form parameter
+      channel: 'creditAN',
     };
 
     // Only include bill_mobile if it has a value
