@@ -4,6 +4,15 @@ import { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { useCart } from "@/context/cartContext";
 import QRCode from "react-qr-code";
+import Script from "next/script";
+import { getFiuuService } from "@/lib/fiuuService";
+
+// Declare Fiuu Seamless types
+declare global {
+  interface Window {
+    FiuuSeamless: any;
+  }
+}
 
 export default function PaymentPage() {
   const router = useRouter();
@@ -13,7 +22,9 @@ export default function PaymentPage() {
   const [error, setError] = useState<string | null>(null);
   const [paymentMethod, setPaymentMethod] = useState<"bank_qr" | "credit_card" | null>(null);
   const [showQRCode, setShowQRCode] = useState(false);
+  const [fiuuSeamlessReady, setFiuuSeamlessReady] = useState(false);
   const qrRef = useRef<HTMLDivElement>(null);
+  const fiuuInstance = useRef<any>(null);
 
   // Calculate total (using finalPrice which includes discounts)
   const retailTotal = cartItems.reduce((sum, item) => sum + item.retailPrice * item.quantity, 0);
