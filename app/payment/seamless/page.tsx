@@ -106,57 +106,78 @@ function SeamlessPaymentContent() {
     console.log('🚀 Preparing seamless payment...');
     console.log('📦 Params:', params);
 
-    // Create VISIBLE button for user to click (popup blockers require real user interaction)
-    const payBtn = document.createElement('button');
-    payBtn.type = 'button';
-    payBtn.id = `molpay-seamless-${params.orderid}`;
-    payBtn.textContent = 'Click to Pay';
-    payBtn.className = 'px-8 py-4 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors text-lg font-semibold shadow-lg';
-
-    // Add to the UI container
-    const container = document.getElementById('payment-button-container');
-    if (container) {
-      container.appendChild(payBtn);
-    } else {
-      document.body.appendChild(payBtn);
-    }
-
-    console.log('✅ Button created');
-    console.log('🔧 Initializing MOLPaySeamless with JavaScript...');
-
-    // Add click event listener for debugging
-    payBtn.addEventListener('click', () => {
-      console.log('👆 User clicked payment button!');
-      console.log('🔍 Checking if popup will open...');
-    });
-
-    // Use jQuery to initialize MOLPaySeamless
-    try {
-      window.$(payBtn).MOLPaySeamless({
-        mpsmerchantid: params.merchantID,
-        mpschannel: params.channel,
-        mpsamount: params.amount,
-        mpsorderid: params.orderid,
-        mpsbill_name: params.bill_name,
-        mpsbill_email: params.bill_email,
-        mpsbill_mobile: params.bill_mobile,
-        mpsbill_desc: params.bill_desc,
-        mpscurrency: params.currency,
-        mpsvcode: params.vcode,
-        mpsreturnurl: params.returnurl,
-        mpscallbackurl: params.callbackurl,
-      });
-
-      console.log('✅ MOLPaySeamless initialized successfully');
-      console.log('📋 Plugin instance:', window.$(payBtn).data());
-      console.log('⏳ Waiting for user to click the button...');
-    } catch (err) {
-      console.error('❌ Failed to initialize MOLPaySeamless:', err);
-      setError(`Failed to initialize payment: ${err}`);
-      return;
-    }
-
+    // Set loading to false FIRST so the UI container renders
     setLoading(false);
+
+    // Wait for next tick to ensure DOM is updated
+    setTimeout(() => {
+      // Create VISIBLE button for user to click (popup blockers require real user interaction)
+      const payBtn = document.createElement('button');
+      payBtn.type = 'button';
+      payBtn.id = `molpay-seamless-${params.orderid}`;
+      payBtn.textContent = 'Click to Pay';
+      payBtn.className = 'px-8 py-4 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors text-lg font-semibold shadow-lg';
+
+      // Add to the UI container
+      const container = document.getElementById('payment-button-container');
+      if (container) {
+        container.appendChild(payBtn);
+        console.log('✅ Button added to container');
+      } else {
+        document.body.appendChild(payBtn);
+        console.log('⚠️ Button added to body (container not found)');
+      }
+
+      console.log('✅ Button element:', payBtn);
+      console.log('🔍 Button in DOM:', document.getElementById(`molpay-seamless-${params.orderid}`));
+      console.log('🔧 Initializing MOLPaySeamless with JavaScript...');
+
+      // Use jQuery to initialize MOLPaySeamless
+      try {
+        window.$(payBtn).MOLPaySeamless({
+          mpsmerchantid: params.merchantID,
+          mpschannel: params.channel,
+          mpsamount: params.amount,
+          mpsorderid: params.orderid,
+          mpsbill_name: params.bill_name,
+          mpsbill_email: params.bill_email,
+          mpsbill_mobile: params.bill_mobile,
+          mpsbill_desc: params.bill_desc,
+          mpscurrency: params.currency,
+          mpsvcode: params.vcode,
+          mpsreturnurl: params.returnurl,
+          mpscallbackurl: params.callbackurl,
+        });
+
+        console.log('✅ MOLPaySeamless initialized successfully');
+        console.log('📋 Plugin instance:', window.$(payBtn).data());
+
+        // Add click listener AFTER MOLPaySeamless init
+        payBtn.addEventListener('click', (e) => {
+          console.log('👆 DIRECT: User clicked payment button!');
+          console.log('🔍 Click event:', e);
+          console.log('🔍 Button element at click time:', e.target);
+        }, true); // Use capture phase to fire before MOLPaySeamless
+
+        // Also add event delegation listener on container (can't be removed by plugin)
+        if (container) {
+          container.addEventListener('click', (e) => {
+            if ((e.target as HTMLElement).id === `molpay-seamless-${params.orderid}`) {
+              console.log('👆 DELEGATED: Click captured via event delegation!');
+              console.log('🔍 Target:', e.target);
+            }
+          });
+          console.log('✅ Delegated click listener attached to container');
+        }
+
+        console.log('✅ Direct click listener attached (after MOLPaySeamless)');
+        console.log('⏳ Waiting for user to click the button...');
+      } catch (err) {
+        console.error('❌ Failed to initialize MOLPaySeamless:', err);
+        setError(`Failed to initialize payment: ${err}`);
+        return;
+      }
+    }, 0); // End setTimeout
   };
 
   return (
