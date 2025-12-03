@@ -5,14 +5,6 @@ import { useRouter } from "next/navigation";
 import { useCart } from "@/context/cartContext";
 import QRCode from "react-qr-code";
 
-// Declare jQuery types for MOLPaySeamless
-declare global {
-  interface Window {
-    $: any;
-    jQuery: any;
-  }
-}
-
 export default function PaymentPage() {
   const router = useRouter();
   const { cartItems, clearCart } = useCart();
@@ -21,9 +13,7 @@ export default function PaymentPage() {
   const [error, setError] = useState<string | null>(null);
   const [paymentMethod, setPaymentMethod] = useState<"bank_qr" | "credit_card" | null>(null);
   const [showQRCode, setShowQRCode] = useState(false);
-  const [seamlessReady, setSeamlessReady] = useState(false);
   const qrRef = useRef<HTMLDivElement>(null);
-  const scriptsLoaded = useRef(false);
 
   // Calculate total (using finalPrice which includes discounts)
   const retailTotal = cartItems.reduce((sum, item) => sum + item.retailPrice * item.quantity, 0);
