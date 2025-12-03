@@ -106,37 +106,43 @@ function SeamlessPaymentContent() {
     console.log('🚀 Triggering seamless payment...');
     console.log('📦 Params:', params);
 
-    // Create button for seamless
+    // Create button for seamless - must be visible for plugin to work
     const payBtn = document.createElement('button');
     payBtn.type = 'button';
     payBtn.id = `molpay-seamless-${params.orderid}`;
-    payBtn.style.display = 'none';
+    payBtn.textContent = 'Pay Now';
+
+    // Position off-screen but keep in DOM flow
+    payBtn.style.position = 'absolute';
+    payBtn.style.left = '-9999px';
+    payBtn.style.top = '0';
+
+    // Add data attributes (alternative method per Fiuu docs)
+    payBtn.setAttribute('data-toggle', 'molpayseamless');
+    payBtn.setAttribute('data-mpsmerchantid', params.merchantID);
+    payBtn.setAttribute('data-mpschannel', params.channel);
+    payBtn.setAttribute('data-mpsamount', params.amount);
+    payBtn.setAttribute('data-mpsorderid', params.orderid);
+    payBtn.setAttribute('data-mpsbill_name', params.bill_name);
+    payBtn.setAttribute('data-mpsbill_email', params.bill_email);
+    payBtn.setAttribute('data-mpsbill_mobile', params.bill_mobile);
+    payBtn.setAttribute('data-mpsbill_desc', params.bill_desc);
+    payBtn.setAttribute('data-mpscurrency', params.currency);
+    payBtn.setAttribute('data-mpsvcode', params.vcode);
+    payBtn.setAttribute('data-mpsreturnurl', params.returnurl);
+    payBtn.setAttribute('data-mpscallbackurl', params.callbackurl);
+
     document.body.appendChild(payBtn);
 
-    // Initialize MOLPaySeamless
-    window.$(payBtn).MOLPaySeamless({
-      mpsmerchantid: params.merchantID,
-      mpschannel: params.channel,
-      mpsamount: params.amount,
-      mpsorderid: params.orderid,
-      mpsbill_name: params.bill_name,
-      mpsbill_email: params.bill_email,
-      mpsbill_mobile: params.bill_mobile,
-      mpsbill_desc: params.bill_desc,
-      mpscurrency: params.currency,
-      mpsvcode: params.vcode,
-      mpsreturnurl: params.returnurl,
-      mpscallbackurl: params.callbackurl,
-    });
+    console.log('✅ Button created with data attributes');
 
-    console.log('✅ MOLPaySeamless initialized');
-
-    // Auto-trigger popup
+    // Auto-trigger popup - increase delay to ensure plugin fully initialized
     setTimeout(() => {
+      console.log('🎯 Clicking button...');
       payBtn.click();
       console.log('✅ Seamless popup triggered');
       setLoading(false);
-    }, 500);
+    }, 1000);
   };
 
   return (
