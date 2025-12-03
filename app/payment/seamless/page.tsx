@@ -160,11 +160,20 @@ function SeamlessPaymentContent() {
       console.log('🔍 Raw params received:', params);
       console.log('⏳ Click the button to trigger payment popup...');
 
-      // Add debug click listener to see if button is clickable
+      // Add debug click listener in CAPTURE phase (runs before Fiuu's handler)
       payBtn.addEventListener('click', (e) => {
         console.log('👆 Button clicked! Fiuu should open popup now...');
         console.log('🔍 Click event:', e);
-      });
+        console.log('🔍 Current button attributes:');
+        console.log('  - data-mpsmerchantid:', payBtn.getAttribute('data-mpsmerchantid'));
+        console.log('  - data-mpschannel:', payBtn.getAttribute('data-mpschannel'));
+        console.log('  - data-mpsamount:', payBtn.getAttribute('data-mpsamount'));
+        console.log('  - data-mpsorderid:', payBtn.getAttribute('data-mpsorderid'));
+        console.log('  - data-mpsvcode:', payBtn.getAttribute('data-mpsvcode'));
+
+        // DON'T prevent default - let Fiuu handle the click
+        // e.preventDefault();
+      }, true); // true = capture phase, runs before Fiuu's bubble phase handler
     }, 0); // End setTimeout
   };
 
