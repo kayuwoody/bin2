@@ -124,23 +124,38 @@ function SeamlessPaymentContent() {
     console.log('✅ Button created');
     console.log('🔧 Initializing MOLPaySeamless with JavaScript...');
 
-    // Use jQuery to initialize MOLPaySeamless
-    window.$(payBtn).MOLPaySeamless({
-      mpsmerchantid: params.merchantID,
-      mpschannel: params.channel,
-      mpsamount: params.amount,
-      mpsorderid: params.orderid,
-      mpsbill_name: params.bill_name,
-      mpsbill_email: params.bill_email,
-      mpsbill_mobile: params.bill_mobile,
-      mpsbill_desc: params.bill_desc,
-      mpscurrency: params.currency,
-      mpsvcode: params.vcode,
-      mpsreturnurl: params.returnurl,
-      mpscallbackurl: params.callbackurl,
+    // Add click event listener for debugging
+    payBtn.addEventListener('click', () => {
+      console.log('👆 User clicked payment button!');
+      console.log('🔍 Checking if popup will open...');
     });
 
-    console.log('✅ MOLPaySeamless initialized - waiting for user to click button');
+    // Use jQuery to initialize MOLPaySeamless
+    try {
+      window.$(payBtn).MOLPaySeamless({
+        mpsmerchantid: params.merchantID,
+        mpschannel: params.channel,
+        mpsamount: params.amount,
+        mpsorderid: params.orderid,
+        mpsbill_name: params.bill_name,
+        mpsbill_email: params.bill_email,
+        mpsbill_mobile: params.bill_mobile,
+        mpsbill_desc: params.bill_desc,
+        mpscurrency: params.currency,
+        mpsvcode: params.vcode,
+        mpsreturnurl: params.returnurl,
+        mpscallbackurl: params.callbackurl,
+      });
+
+      console.log('✅ MOLPaySeamless initialized successfully');
+      console.log('📋 Plugin instance:', window.$(payBtn).data());
+      console.log('⏳ Waiting for user to click the button...');
+    } catch (err) {
+      console.error('❌ Failed to initialize MOLPaySeamless:', err);
+      setError(`Failed to initialize payment: ${err}`);
+      return;
+    }
+
     setLoading(false);
   };
 
