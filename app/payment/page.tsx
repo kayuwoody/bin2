@@ -84,7 +84,17 @@ export default function PaymentPage() {
 
             fiuuScript.onload = () => {
               console.log('✅ Fiuu Seamless script loaded');
-              setFiuuSeamlessReady(true);
+
+              // Verify the plugin is available
+              setTimeout(() => {
+                if (window.$ && typeof window.$.fn.MOLPaySeamless === 'function') {
+                  console.log('✅ MOLPaySeamless plugin verified');
+                  setFiuuSeamlessReady(true);
+                } else {
+                  console.error('❌ MOLPaySeamless plugin not found after script load');
+                  setError('Payment gateway plugin failed to initialize. Please refresh the page.');
+                }
+              }, 100); // Small delay to ensure plugin registration
             };
 
             fiuuScript.onerror = () => {
@@ -268,6 +278,11 @@ export default function PaymentPage() {
           console.log('🚀 Launching Fiuu Seamless payment popup');
           console.log('📦 Payment params:', paymentData.formData.params);
 
+          // Verify MOLPaySeamless plugin is available
+          if (typeof window.$.fn.MOLPaySeamless !== 'function') {
+            throw new Error('Fiuu Seamless plugin not loaded. Please refresh the page.');
+          }
+
           // Create a temporary element to trigger the seamless popup
           const tempBtn = document.createElement('button');
           tempBtn.id = 'fiuu-seamless-trigger';
@@ -276,7 +291,7 @@ export default function PaymentPage() {
 
           // Launch Fiuu Seamless using jQuery plugin
           // Use creditAN channel to force credit card directly
-          window.$(tempBtn).molpayseamless({
+          window.$(tempBtn).MOLPaySeamless({
             mpsmerchantid: paymentData.formData.params.merchantID,
             mpschannel: 'creditAN', // Force credit card channel
             mpsamount: paymentData.formData.params.amount,
