@@ -149,13 +149,32 @@ function SeamlessPaymentContent() {
                   return;
                 }
 
-                // Open Fiuu payment in popup window
+                // Open popup window first
                 const popupWidth = 800;
                 const popupHeight = 600;
                 const left = (screen.width - popupWidth) / 2;
                 const top = (screen.height - popupHeight) / 2;
 
-                const popupUrl = `https://pay.fiuu.com/RMS/pay/${params.mpsmerchantid}?` + new URLSearchParams({
+                const popup = window.open(
+                  'about:blank',
+                  'fiuu_payment',
+                  `width=${popupWidth},height=${popupHeight},left=${left},top=${top},resizable=yes,scrollbars=yes`
+                );
+
+                if (!popup) {
+                  alert('Popup was blocked! Please allow popups for this site.');
+                  return;
+                }
+
+                // Create a form that POSTs to Fiuu
+                const paymentForm = document.createElement('form');
+                paymentForm.method = 'POST';
+                paymentForm.action = `https://pay.fiuu.com/RMS/pay/${params.mpsmerchantid}`;
+                paymentForm.target = 'fiuu_payment'; // Submit to the popup window
+                paymentForm.style.display = 'none';
+
+                // Add all payment parameters as form fields
+                const paymentFields = {
                   amount: params.mpsamount,
                   orderid: params.mpsorderid,
                   bill_name: params.mpsbill_name,
@@ -168,19 +187,21 @@ function SeamlessPaymentContent() {
                   langcode: params.mpslangcode,
                   channel: params.mpschannel,
                   returnurl: params.mpsreturnurl,
-                }).toString();
+                };
 
-                console.log('🚀 Opening popup:', popupUrl);
+                Object.entries(paymentFields).forEach(([name, value]) => {
+                  const input = document.createElement('input');
+                  input.type = 'hidden';
+                  input.name = name;
+                  input.value = value as string;
+                  paymentForm.appendChild(input);
+                });
 
-                const popup = window.open(
-                  popupUrl,
-                  'fiuu_payment',
-                  `width=${popupWidth},height=${popupHeight},left=${left},top=${top},resizable=yes,scrollbars=yes`
-                );
-
-                if (!popup) {
-                  alert('Popup was blocked! Please allow popups for this site.');
-                }
+                // Add form to document, submit to popup, then remove
+                document.body.appendChild(paymentForm);
+                console.log('🚀 Submitting payment form to popup window...');
+                paymentForm.submit();
+                document.body.removeChild(paymentForm);
               } catch (error) {
                 console.error('❌ Payment error:', error);
                 alert(`Payment failed: ${error}`);
