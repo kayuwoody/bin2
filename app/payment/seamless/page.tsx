@@ -16,31 +16,11 @@ function SeamlessPaymentContent() {
   const searchParams = useSearchParams();
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
-  const [paymentParams, setPaymentParams] = useState<any>(null);
   const scriptsLoaded = useRef(false);
-  const paymentTriggered = useRef(false);
 
   useEffect(() => {
     const initSeamless = async () => {
       try {
-        // Get payment params from URL
-        const merchantID = searchParams.get('merchantID');
-        const channel = searchParams.get('channel');
-        const amount = searchParams.get('amount');
-        const orderid = searchParams.get('orderid');
-        const bill_name = searchParams.get('bill_name');
-        const bill_email = searchParams.get('bill_email');
-        const bill_mobile = searchParams.get('bill_mobile');
-        const bill_desc = searchParams.get('bill_desc');
-        const currency = searchParams.get('currency');
-        const vcode = searchParams.get('vcode');
-        const returnurl = searchParams.get('returnurl');
-        const callbackurl = searchParams.get('callbackurl');
-
-        if (!merchantID || !amount || !orderid || !vcode) {
-          throw new Error('Missing required payment parameters');
-        }
-
         console.log('📦 Loading seamless scripts...');
 
         // Load config to get script URLs
@@ -62,24 +42,7 @@ function SeamlessPaymentContent() {
 
         console.log('✅ MOLPaySeamless verified');
         scriptsLoaded.current = true;
-
-        // Trigger payment after scripts loaded
-        if (!paymentTriggered.current) {
-          triggerPayment({
-            merchantID,
-            channel: channel || 'creditAN',
-            amount,
-            orderid,
-            bill_name: bill_name || '',
-            bill_email: bill_email || '',
-            bill_mobile: bill_mobile || '',
-            bill_desc: bill_desc || '',
-            currency: currency || 'MYR',
-            vcode,
-            returnurl: returnurl || '',
-            callbackurl: callbackurl || '',
-          });
-        }
+        setLoading(false);
       } catch (err: any) {
         console.error('❌ Seamless init error:', err);
         setError(err.message || 'Failed to initialize payment');
@@ -100,55 +63,6 @@ function SeamlessPaymentContent() {
       document.body.appendChild(script);
     });
   };
-
-  const triggerPayment = (params: any) => {
-    paymentTriggered.current = true;
-
-    console.log('🚀 Preparing seamless payment...');
-    console.log('📦 Params:', params);
-
-    // Store params in state so we can render the button with data attributes
-    setPaymentParams(params);
-    setLoading(false);
-  };
-
-  // Initialize MOLPaySeamless after button renders
-  useEffect(() => {
-    if (!paymentParams || !window.$) return;
-
-    // Wait for button to be in DOM
-    setTimeout(() => {
-      const $btn = window.$('#molpay-seamless-btn');
-      if ($btn.length === 0) {
-        console.error('❌ Button not found in DOM');
-        return;
-      }
-
-      console.log('🔧 Manually initializing MOLPaySeamless on rendered button');
-
-      try {
-        $btn.MOLPaySeamless({
-          mpsmerchantid: paymentParams.merchantID,
-          mpschannel: paymentParams.channel,
-          mpsamount: paymentParams.amount,
-          mpsorderid: paymentParams.orderid,
-          mpsbill_name: paymentParams.bill_name,
-          mpsbill_email: paymentParams.bill_email,
-          mpsbill_mobile: paymentParams.bill_mobile,
-          mpsbill_desc: paymentParams.bill_desc,
-          mpscurrency: paymentParams.currency,
-          mpsvcode: paymentParams.vcode,
-          mpsreturnurl: paymentParams.returnurl,
-          mpscallbackurl: paymentParams.callbackurl,
-        });
-
-        console.log('✅ MOLPaySeamless initialized on static button');
-        console.log('📋 Button data:', $btn.data());
-      } catch (err) {
-        console.error('❌ Failed to initialize MOLPaySeamless:', err);
-      }
-    }, 100);
-  }, [paymentParams]);
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-purple-50 to-blue-50 flex items-center justify-center p-4">
@@ -177,37 +91,42 @@ function SeamlessPaymentContent() {
           </>
         )}
 
-        {!loading && !error && paymentParams && (
+        {!loading && !error && (
           <>
             <div className="text-purple-500 text-5xl mb-4">💳</div>
             <h1 className="text-2xl font-bold text-gray-900 mb-4">Ready to Pay</h1>
             <p className="text-gray-600 mb-6">
-              Click the button below to open the payment window.
+              Click the button below to proceed with payment.
             </p>
 
-            {/* Static button with data-toggle for Fiuu auto-activation */}
-            <div className="mb-6">
+            {/* Form with role="molpayseamless" - Fiuu will intercept the submit */}
+            <form
+              method="POST"
+              action="/api/payments/seamless-process"
+              role="molpayseamless"
+              className="mb-6"
+            >
+              {/* Pass all payment params as hidden fields */}
+              <input type="hidden" name="merchantID" value={searchParams.get('merchantID') || ''} />
+              <input type="hidden" name="channel" value={searchParams.get('channel') || ''} />
+              <input type="hidden" name="amount" value={searchParams.get('amount') || ''} />
+              <input type="hidden" name="orderid" value={searchParams.get('orderid') || ''} />
+              <input type="hidden" name="bill_name" value={searchParams.get('bill_name') || ''} />
+              <input type="hidden" name="bill_email" value={searchParams.get('bill_email') || ''} />
+              <input type="hidden" name="bill_mobile" value={searchParams.get('bill_mobile') || ''} />
+              <input type="hidden" name="bill_desc" value={searchParams.get('bill_desc') || ''} />
+              <input type="hidden" name="currency" value={searchParams.get('currency') || ''} />
+              <input type="hidden" name="vcode" value={searchParams.get('vcode') || ''} />
+              <input type="hidden" name="returnurl" value={searchParams.get('returnurl') || ''} />
+              <input type="hidden" name="callbackurl" value={searchParams.get('callbackurl') || ''} />
+
               <button
-                type="button"
-                id="molpay-seamless-btn"
+                type="submit"
                 className="px-8 py-4 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors text-lg font-semibold shadow-lg"
-                data-toggle="molpayseamless"
-                data-mpsmerchantid={paymentParams.merchantID}
-                data-mpschannel={paymentParams.channel}
-                data-mpsamount={paymentParams.amount}
-                data-mpsorderid={paymentParams.orderid}
-                data-mpsbill_name={paymentParams.bill_name}
-                data-mpsbill_email={paymentParams.bill_email}
-                data-mpsbill_mobile={paymentParams.bill_mobile || ''}
-                data-mpsbill_desc={paymentParams.bill_desc}
-                data-mpscurrency={paymentParams.currency}
-                data-mpsvcode={paymentParams.vcode}
-                data-mpsreturnurl={paymentParams.returnurl}
-                data-mpscallbackurl={paymentParams.callbackurl}
               >
                 Click to Pay
               </button>
-            </div>
+            </form>
 
             <p className="text-sm text-gray-500">
               A popup window will appear with the payment form.
