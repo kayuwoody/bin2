@@ -27,13 +27,46 @@ function SeamlessPaymentContent() {
         const configResponse = await fetch('/api/payments/config');
         const config = await configResponse.json();
 
-        // Load jQuery
+        // Load jQuery FIRST
         await loadScript(config.jqueryUrl);
         console.log('✅ jQuery loaded');
 
-        // Load Fiuu Seamless
+        // NOW create the form BEFORE loading MOLPaySeamless
+        // This ensures the form exists when the plugin's $(document).ready() fires
+        console.log('🔧 Creating form BEFORE loading MOLPaySeamless script...');
+        const container = document.getElementById('payment-form-container');
+        if (!container) {
+          throw new Error('Payment container not found');
+        }
+
+        const formHTML = `
+          <form method="POST" action="/api/payments/seamless-process" role="molpayseamless" id="seamless-payment-form">
+            <input type="hidden" name="merchantID" value="${searchParams.get('merchantID') || ''}" />
+            <input type="hidden" name="channel" value="${searchParams.get('channel') || ''}" />
+            <input type="hidden" name="amount" value="${searchParams.get('amount') || ''}" />
+            <input type="hidden" name="orderid" value="${searchParams.get('orderid') || ''}" />
+            <input type="hidden" name="bill_name" value="${searchParams.get('bill_name') || ''}" />
+            <input type="hidden" name="bill_email" value="${searchParams.get('bill_email') || ''}" />
+            <input type="hidden" name="bill_mobile" value="${searchParams.get('bill_mobile') || ''}" />
+            <input type="hidden" name="bill_desc" value="${searchParams.get('bill_desc') || ''}" />
+            <input type="hidden" name="currency" value="${searchParams.get('currency') || ''}" />
+            <input type="hidden" name="vcode" value="${searchParams.get('vcode') || ''}" />
+            <input type="hidden" name="returnurl" value="${searchParams.get('returnurl') || ''}" />
+            <input type="hidden" name="callbackurl" value="${searchParams.get('callbackurl') || ''}" />
+
+            <button type="submit" class="px-8 py-4 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors text-lg font-semibold shadow-lg">
+              Click to Pay
+            </button>
+          </form>
+        `;
+
+        container.innerHTML = formHTML;
+        console.log('✅ Form created and exists in DOM');
+
+        // NOW load Fiuu Seamless - it will scan and find our form!
+        console.log('📦 Loading MOLPaySeamless script (form already exists)...');
         await loadScript(config.fiuuScriptUrl);
-        console.log('✅ Fiuu Seamless loaded');
+        console.log('✅ Fiuu Seamless loaded - should have found form');
 
         // Verify plugin
         if (!window.$ || typeof window.$.fn.MOLPaySeamless !== 'function') {
@@ -41,6 +74,7 @@ function SeamlessPaymentContent() {
         }
 
         console.log('✅ MOLPaySeamless verified');
+        console.log('✅ Form should now intercept submissions and open popup!');
         scriptsLoaded.current = true;
         setLoading(false);
       } catch (err: any) {
@@ -64,60 +98,6 @@ function SeamlessPaymentContent() {
     });
   };
 
-  // Initialize payment form after scripts load
-  useEffect(() => {
-    if (!scriptsLoaded.current || loading) return;
-
-    console.log('🔧 Creating static form for MOLPaySeamless...');
-
-    // Create form with vanilla JS so it exists in DOM as plain HTML
-    const container = document.getElementById('payment-form-container');
-    if (!container) {
-      console.error('❌ Container not found');
-      return;
-    }
-
-    // Build static HTML form
-    const formHTML = `
-      <form method="POST" action="/api/payments/seamless-process" role="molpayseamless" id="seamless-payment-form">
-        <input type="hidden" name="merchantID" value="${searchParams.get('merchantID') || ''}" />
-        <input type="hidden" name="channel" value="${searchParams.get('channel') || ''}" />
-        <input type="hidden" name="amount" value="${searchParams.get('amount') || ''}" />
-        <input type="hidden" name="orderid" value="${searchParams.get('orderid') || ''}" />
-        <input type="hidden" name="bill_name" value="${searchParams.get('bill_name') || ''}" />
-        <input type="hidden" name="bill_email" value="${searchParams.get('bill_email') || ''}" />
-        <input type="hidden" name="bill_mobile" value="${searchParams.get('bill_mobile') || ''}" />
-        <input type="hidden" name="bill_desc" value="${searchParams.get('bill_desc') || ''}" />
-        <input type="hidden" name="currency" value="${searchParams.get('currency') || ''}" />
-        <input type="hidden" name="vcode" value="${searchParams.get('vcode') || ''}" />
-        <input type="hidden" name="returnurl" value="${searchParams.get('returnurl') || ''}" />
-        <input type="hidden" name="callbackurl" value="${searchParams.get('callbackurl') || ''}" />
-
-        <button type="submit" class="px-8 py-4 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors text-lg font-semibold shadow-lg">
-          Click to Pay
-        </button>
-      </form>
-    `;
-
-    container.innerHTML = formHTML;
-    console.log('✅ Static form created');
-
-    // Trigger MOLPaySeamless to scan for the new form
-    // Force jQuery ready event to re-fire for the plugin
-    setTimeout(() => {
-      console.log('🔄 Triggering MOLPaySeamless to scan form...');
-
-      // The plugin attaches on $(document).ready(), but since our form is dynamic,
-      // we need to manually trigger the plugin's initialization
-      // Look for the form and manually attach the interceptor
-      const $form = window.$('form[role="molpayseamless"]');
-      console.log('📋 Found forms with role="molpayseamless":', $form.length);
-
-      if ($form.length > 0) {
-        console.log('✅ Form found, plugin should intercept submit');
-      }
-    }, 100);
-  }, [loading, scriptsLoaded, searchParams]);
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-purple-50 to-blue-50 flex items-center justify-center p-4">
