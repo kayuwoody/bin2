@@ -130,6 +130,11 @@ function SeamlessPaymentContent() {
 
       console.log('🔍 Raw params received:', params);
 
+      // Add a test click handler to verify button is clickable
+      payBtn.addEventListener('click', () => {
+        console.log('🖱️ Native click handler fired - button IS clickable');
+      });
+
       // Initialize MOLPaySeamless using JavaScript (required for dynamically created buttons)
       // data-toggle only works for buttons present when script loads
       try {
@@ -150,13 +155,20 @@ function SeamlessPaymentContent() {
 
         console.log('🔧 Initializing MOLPaySeamless with options:', seamlessOptions);
 
-        // Call MOLPaySeamless on the button
-        window.$(`#${payBtn.id}`).MOLPaySeamless(seamlessOptions);
+        // Verify jQuery can find the button
+        const $button = window.$(`#${payBtn.id}`);
+        console.log('🔍 jQuery found button?', $button.length, $button);
+        console.log('🔍 MOLPaySeamless function exists?', typeof window.$.fn.MOLPaySeamless);
 
-        console.log('✅ MOLPaySeamless initialized successfully');
+        // Call MOLPaySeamless on the button
+        const result = $button.MOLPaySeamless(seamlessOptions);
+
+        console.log('✅ MOLPaySeamless call returned:', result);
+        console.log('🔍 Button jQuery data after init:', $button.data());
         console.log('⏳ Click the button to open payment popup...');
       } catch (err) {
         console.error('❌ MOLPaySeamless initialization failed:', err);
+        console.error('❌ Error stack:', err.stack);
         setError(`Failed to initialize payment: ${err}`);
       }
     }, 0); // End setTimeout
