@@ -16,6 +16,7 @@ function SeamlessPaymentContent() {
   const searchParams = useSearchParams();
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
+  const [paymentParams, setPaymentParams] = useState<any>(null);
   const scriptsLoaded = useRef(false);
   const paymentTriggered = useRef(false);
 
@@ -106,75 +107,48 @@ function SeamlessPaymentContent() {
     console.log('🚀 Preparing seamless payment...');
     console.log('📦 Params:', params);
 
-    // Set loading to false FIRST so the UI container renders
+    // Store params in state so we can render the button with data attributes
+    setPaymentParams(params);
     setLoading(false);
-
-    // Wait for next tick to ensure DOM is updated
-    setTimeout(() => {
-      // Create button for JavaScript initialization (required for dynamic buttons)
-      const payBtn = document.createElement('button');
-      payBtn.type = 'button';
-      payBtn.id = `molpay-seamless-${params.orderid}`;
-      payBtn.textContent = 'Click to Pay';
-      payBtn.className = 'px-8 py-4 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors text-lg font-semibold shadow-lg';
-
-      // Add to the UI container FIRST (must be in DOM before MOLPaySeamless init)
-      const container = document.getElementById('payment-button-container');
-      if (container) {
-        container.appendChild(payBtn);
-        console.log('✅ Button added to container');
-      } else {
-        document.body.appendChild(payBtn);
-        console.log('⚠️ Button added to body (container not found)');
-      }
-
-      console.log('🔍 Raw params received:', params);
-
-      // Add a test click handler to verify button is clickable
-      payBtn.addEventListener('click', () => {
-        console.log('🖱️ Native click handler fired - button IS clickable');
-      });
-
-      // Initialize MOLPaySeamless using JavaScript (required for dynamically created buttons)
-      // data-toggle only works for buttons present when script loads
-      try {
-        const seamlessOptions = {
-          mpsmerchantid: params.merchantID,
-          mpschannel: params.channel,
-          mpsamount: params.amount,
-          mpsorderid: params.orderid,
-          mpsbill_name: params.bill_name,
-          mpsbill_email: params.bill_email,
-          mpsbill_mobile: params.bill_mobile,
-          mpsbill_desc: params.bill_desc,
-          mpscurrency: params.currency,
-          mpsvcode: params.vcode,
-          mpsreturnurl: params.returnurl,
-          mpscallbackurl: params.callbackurl,
-        };
-
-        console.log('🔧 Initializing MOLPaySeamless with options:', seamlessOptions);
-
-        // Verify jQuery can find the button
-        const $button = window.$(`#${payBtn.id}`);
-        console.log('🔍 jQuery found button?', $button.length, $button);
-        console.log('🔍 MOLPaySeamless function exists?', typeof window.$.fn.MOLPaySeamless);
-
-        // Call MOLPaySeamless on the button
-        const result = $button.MOLPaySeamless(seamlessOptions);
-
-        console.log('✅ MOLPaySeamless call returned:', result);
-        console.log('🔍 Button jQuery data after init:', $button.data());
-        console.log('⏳ Click the button to open payment popup...');
-      } catch (err) {
-        console.error('❌ MOLPaySeamless initialization failed:', err);
-        if (err instanceof Error) {
-          console.error('❌ Error stack:', err.stack);
-        }
-        setError(`Failed to initialize payment: ${err}`);
-      }
-    }, 0); // End setTimeout
   };
+
+  // Initialize MOLPaySeamless after button renders
+  useEffect(() => {
+    if (!paymentParams || !window.$) return;
+
+    // Wait for button to be in DOM
+    setTimeout(() => {
+      const $btn = window.$('#molpay-seamless-btn');
+      if ($btn.length === 0) {
+        console.error('❌ Button not found in DOM');
+        return;
+      }
+
+      console.log('🔧 Manually initializing MOLPaySeamless on rendered button');
+
+      try {
+        $btn.MOLPaySeamless({
+          mpsmerchantid: paymentParams.merchantID,
+          mpschannel: paymentParams.channel,
+          mpsamount: paymentParams.amount,
+          mpsorderid: paymentParams.orderid,
+          mpsbill_name: paymentParams.bill_name,
+          mpsbill_email: paymentParams.bill_email,
+          mpsbill_mobile: paymentParams.bill_mobile,
+          mpsbill_desc: paymentParams.bill_desc,
+          mpscurrency: paymentParams.currency,
+          mpsvcode: paymentParams.vcode,
+          mpsreturnurl: paymentParams.returnurl,
+          mpscallbackurl: paymentParams.callbackurl,
+        });
+
+        console.log('✅ MOLPaySeamless initialized on static button');
+        console.log('📋 Button data:', $btn.data());
+      } catch (err) {
+        console.error('❌ Failed to initialize MOLPaySeamless:', err);
+      }
+    }, 100);
+  }, [paymentParams]);
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-purple-50 to-blue-50 flex items-center justify-center p-4">
@@ -203,7 +177,7 @@ function SeamlessPaymentContent() {
           </>
         )}
 
-        {!loading && !error && (
+        {!loading && !error && paymentParams && (
           <>
             <div className="text-purple-500 text-5xl mb-4">💳</div>
             <h1 className="text-2xl font-bold text-gray-900 mb-4">Ready to Pay</h1>
@@ -211,8 +185,29 @@ function SeamlessPaymentContent() {
               Click the button below to open the payment window.
             </p>
 
-            {/* Button will be inserted here */}
-            <div id="payment-button-container" className="mb-6"></div>
+            {/* Static button with data-toggle for Fiuu auto-activation */}
+            <div className="mb-6">
+              <button
+                type="button"
+                id="molpay-seamless-btn"
+                className="px-8 py-4 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors text-lg font-semibold shadow-lg"
+                data-toggle="molpayseamless"
+                data-mpsmerchantid={paymentParams.merchantID}
+                data-mpschannel={paymentParams.channel}
+                data-mpsamount={paymentParams.amount}
+                data-mpsorderid={paymentParams.orderid}
+                data-mpsbill_name={paymentParams.bill_name}
+                data-mpsbill_email={paymentParams.bill_email}
+                data-mpsbill_mobile={paymentParams.bill_mobile || ''}
+                data-mpsbill_desc={paymentParams.bill_desc}
+                data-mpscurrency={paymentParams.currency}
+                data-mpsvcode={paymentParams.vcode}
+                data-mpsreturnurl={paymentParams.returnurl}
+                data-mpscallbackurl={paymentParams.callbackurl}
+              >
+                Click to Pay
+              </button>
+            </div>
 
             <p className="text-sm text-gray-500">
               A popup window will appear with the payment form.
