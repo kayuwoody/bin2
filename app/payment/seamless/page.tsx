@@ -168,7 +168,9 @@ function SeamlessPaymentContent() {
         console.log('⏳ Click the button to open payment popup...');
       } catch (err) {
         console.error('❌ MOLPaySeamless initialization failed:', err);
-        console.error('❌ Error stack:', err.stack);
+        if (err instanceof Error) {
+          console.error('❌ Error stack:', err.stack);
+        }
         setError(`Failed to initialize payment: ${err}`);
       }
     }, 0); // End setTimeout
