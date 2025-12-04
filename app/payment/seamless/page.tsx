@@ -133,16 +133,18 @@ function SeamlessPaymentContent() {
             <p className="text-gray-600 mb-6">
               Click the button below to proceed with payment.
             </p>
-
-            {/* Form will be inserted here by vanilla JS after scripts load */}
-            <div id="payment-form-container" className="mb-6"></div>
-
-            <p className="text-sm text-gray-500">
-              A popup window will appear with the payment form.
-              <br />
-              You can close this tab after completing payment.
-            </p>
           </>
+        )}
+
+        {/* Container always present so form can be created during loading */}
+        <div id="payment-form-container" className="mb-6" style={{ display: loading ? 'none' : 'block' }}></div>
+
+        {!loading && !error && (
+          <p className="text-sm text-gray-500">
+            A popup window will appear with the payment form.
+            <br />
+            You can close this tab after completing payment.
+          </p>
         )}
       </div>
     </div>
