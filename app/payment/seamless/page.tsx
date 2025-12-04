@@ -74,6 +74,24 @@ function SeamlessPaymentContent() {
         }
 
         console.log('✅ MOLPaySeamless verified');
+
+        // IMPORTANT: Manually trigger the plugin to scan for forms
+        // The plugin's auto-scan on $(document).ready() might not catch our dynamically created form
+        console.log('🔄 Manually triggering MOLPaySeamless to scan for forms...');
+
+        // Force the plugin to re-scan by triggering a jQuery ready event
+        window.$(document).trigger('ready');
+
+        // Alternative: Manually find and log forms with role="molpayseamless"
+        const $forms = window.$('form[role="molpayseamless"]');
+        console.log('📋 Found forms with role="molpayseamless":', $forms.length);
+
+        if ($forms.length === 0) {
+          console.error('❌ No forms found! Form was not created properly.');
+        } else {
+          console.log('✅ Form found in DOM, plugin should intercept it');
+        }
+
         console.log('✅ Form should now intercept submissions and open popup!');
         scriptsLoaded.current = true;
         setLoading(false);
