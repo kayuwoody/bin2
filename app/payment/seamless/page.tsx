@@ -39,29 +39,49 @@ function SeamlessPaymentContent() {
           throw new Error('Payment container not found');
         }
 
-        const formHTML = `
-          <form method="POST" action="/api/payments/seamless-process" role="molpayseamless" id="seamless-payment-form">
-            <input type="hidden" name="merchantID" value="${searchParams.get('merchantID') || ''}" />
-            <input type="hidden" name="channel" value="${searchParams.get('channel') || ''}" />
-            <input type="hidden" name="amount" value="${searchParams.get('amount') || ''}" />
-            <input type="hidden" name="orderid" value="${searchParams.get('orderid') || ''}" />
-            <input type="hidden" name="bill_name" value="${searchParams.get('bill_name') || ''}" />
-            <input type="hidden" name="bill_email" value="${searchParams.get('bill_email') || ''}" />
-            <input type="hidden" name="bill_mobile" value="${searchParams.get('bill_mobile') || ''}" />
-            <input type="hidden" name="bill_desc" value="${searchParams.get('bill_desc') || ''}" />
-            <input type="hidden" name="currency" value="${searchParams.get('currency') || ''}" />
-            <input type="hidden" name="vcode" value="${searchParams.get('vcode') || ''}" />
-            <input type="hidden" name="returnurl" value="${searchParams.get('returnurl') || ''}" />
-            <input type="hidden" name="callbackurl" value="${searchParams.get('callbackurl') || ''}" />
+        // Create form using DOM methods (not innerHTML) for proper DOM insertion
+        const form = document.createElement('form');
+        form.method = 'POST';
+        form.action = '/api/payments/seamless-process';
+        form.setAttribute('role', 'molpayseamless');
+        form.id = 'seamless-payment-form';
 
-            <button type="submit" class="px-8 py-4 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors text-lg font-semibold shadow-lg">
-              Click to Pay
-            </button>
-          </form>
-        `;
+        // Add all hidden inputs
+        const fields = {
+          'merchantID': searchParams.get('merchantID') || '',
+          'channel': searchParams.get('channel') || '',
+          'amount': searchParams.get('amount') || '',
+          'orderid': searchParams.get('orderid') || '',
+          'bill_name': searchParams.get('bill_name') || '',
+          'bill_email': searchParams.get('bill_email') || '',
+          'bill_mobile': searchParams.get('bill_mobile') || '',
+          'bill_desc': searchParams.get('bill_desc') || '',
+          'currency': searchParams.get('currency') || '',
+          'vcode': searchParams.get('vcode') || '',
+          'returnurl': searchParams.get('returnurl') || '',
+          'callbackurl': searchParams.get('callbackurl') || '',
+        };
 
-        container.innerHTML = formHTML;
-        console.log('✅ Form created and exists in DOM');
+        Object.entries(fields).forEach(([name, value]) => {
+          const input = document.createElement('input');
+          input.type = 'hidden';
+          input.name = name;
+          input.value = value;
+          form.appendChild(input);
+        });
+
+        // Add submit button
+        const button = document.createElement('button');
+        button.type = 'submit';
+        button.className = 'px-8 py-4 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors text-lg font-semibold shadow-lg';
+        button.textContent = 'Click to Pay';
+        form.appendChild(button);
+
+        // Add form to container
+        container.appendChild(form);
+        console.log('✅ Form created with createElement and exists in DOM');
+        console.log('📋 Form element:', form);
+        console.log('📋 Form has role attribute:', form.getAttribute('role'));
 
         // NOW load Fiuu Seamless - it will scan and find our form!
         console.log('📦 Loading MOLPaySeamless script (form already exists)...');
