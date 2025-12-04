@@ -169,9 +169,18 @@ function SeamlessPaymentContent() {
                 // Create a form that POSTs to Fiuu
                 const paymentForm = document.createElement('form');
                 paymentForm.method = 'POST';
-                paymentForm.action = `https://pay.fiuu.com/RMS/pay/${params.mpsmerchantid}`;
+
+                // Determine base URL based on merchant ID (SB_ prefix = sandbox)
+                const isSandbox = params.mpsmerchantid.startsWith('SB_');
+                const baseURL = isSandbox
+                  ? 'https://sandbox-payment.fiuu.com'
+                  : 'https://payment.fiuu.com';
+
+                paymentForm.action = `${baseURL}/RMS/pay/${params.mpsmerchantid}`;
                 paymentForm.target = 'fiuu_payment'; // Submit to the popup window
                 paymentForm.style.display = 'none';
+
+                console.log('💳 Posting to:', paymentForm.action);
 
                 // Add all payment parameters as form fields
                 const paymentFields = {
