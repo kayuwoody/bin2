@@ -130,7 +130,7 @@ function SeamlessPaymentContent() {
             console.warn('⚠️ Plugin did not attach submit handler - will manually intercept');
 
             // Manually intercept form submission since plugin didn't attach
-            $forms.on('submit', async function(e: any) {
+            $forms.on('submit', async function(this: HTMLFormElement, e: any) {
               e.preventDefault();
               console.log('🔄 Manual submit intercept - fetching payment params...');
 
