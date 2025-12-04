@@ -176,13 +176,15 @@ function SeamlessPaymentContent() {
                   ? 'https://sandbox-payment.fiuu.com'
                   : 'https://payment.fiuu.com';
 
-                paymentForm.action = `${baseURL}/RMS/pay/${params.mpsmerchantid}`;
+                // Use indexAN.php to force credit card channel (per working redirect code)
+                paymentForm.action = `${baseURL}/RMS/pay/${params.mpsmerchantid}/indexAN.php`;
                 paymentForm.target = 'fiuu_payment'; // Submit to the popup window
                 paymentForm.style.display = 'none';
 
                 console.log('💳 Posting to:', paymentForm.action);
 
                 // Add all payment parameters as form fields
+                // Based on working redirect integration in fiuuService.ts
                 const paymentFields = {
                   amount: params.mpsamount,
                   orderid: params.mpsorderid,
@@ -190,13 +192,12 @@ function SeamlessPaymentContent() {
                   bill_email: params.mpsbill_email,
                   bill_mobile: params.mpsbill_mobile || '',
                   bill_desc: params.mpsbill_desc,
-                  country: params.mpscountry,
-                  vcode: params.mpsvcode,
                   currency: params.mpscurrency,
-                  langcode: params.mpslangcode,
-                  channel: params.mpschannel,
+                  vcode: params.mpsvcode,
                   returnurl: params.mpsreturnurl,
-                  callbackurl: params.mpscallbackurl, // IMPORTANT: was missing!
+                  callbackurl: params.mpscallbackurl,
+                  merchantID: params.mpsmerchantid, // IMPORTANT: was missing!
+                  channel: params.mpschannel,
                 };
 
                 console.log('📋 Payment fields:', paymentFields);
