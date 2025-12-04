@@ -28,6 +28,8 @@ export async function POST(request: NextRequest) {
       amount,
       orderid,
     });
+    console.log('💳 Channel value received:', channel);
+    console.log('🎯 Expected: creditAN (for credit card forcing)');
 
     // Return JSON in format expected by MOLPaySeamless plugin
     // Based on seamless-demo-v3.28/process_order.php

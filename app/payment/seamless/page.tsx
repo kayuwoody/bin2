@@ -213,10 +213,12 @@ function SeamlessPaymentContent() {
                   returnurl: params.mpsreturnurl,
                   callbackurl: params.mpscallbackurl,
                   merchantID: params.mpsmerchantid, // IMPORTANT: was missing!
-                  channel: params.mpschannel,
+                  channel: params.mpschannel, // Should be 'creditAN' to force credit card
                 };
 
                 console.log('📋 Payment fields:', paymentFields);
+                console.log('💳 Channel value:', params.mpschannel);
+                console.log('🎯 Expected channel: creditAN (for credit card forcing)');
 
                 Object.entries(paymentFields).forEach(([name, value]) => {
                   const input = document.createElement('input');
