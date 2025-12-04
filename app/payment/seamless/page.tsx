@@ -192,7 +192,20 @@ function SeamlessPaymentContent() {
                   ? 'https://sandbox-payment.fiuu.com'
                   : 'https://payment.fiuu.com';
 
-                // Use indexAN.php to force credit card channel (per working redirect code)
+                // Channel forcing behavior:
+                // - Official seamless sample shows channel selection by default
+                // - Redirect integration uses indexAN.php to force credit card (per Fiuu support)
+                // - We're using indexAN.php + creditAN channel here, but may not work in:
+                //   * Sandbox mode (may be production-only feature)
+                //   * Seamless mode (may only work for redirect mode)
+                //   * Without merchant account configuration by Fiuu
+                // If channel selection appears, this is expected seamless behavior
+                //
+                // Alternatives to try if channel forcing needed:
+                // 1. Test in production mode (channel forcing may not work in sandbox)
+                // 2. Contact Fiuu support to enable channel forcing for your merchant account
+                // 3. Use standard URL without indexAN.php and let users choose payment method
+                //    Change to: `${baseURL}/RMS/pay/${params.mpsmerchantid}/index.php`
                 paymentForm.action = `${baseURL}/RMS/pay/${params.mpsmerchantid}/indexAN.php`;
                 paymentForm.target = 'fiuu_payment'; // Submit to the popup window
                 paymentForm.style.display = 'none';
