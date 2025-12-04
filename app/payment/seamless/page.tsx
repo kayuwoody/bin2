@@ -83,6 +83,11 @@ function SeamlessPaymentContent() {
         console.log('📋 Form element:', form);
         console.log('📋 Form has role attribute:', form.getAttribute('role'));
 
+        // CRITICAL: Force jQuery to process the form before loading MOLPaySeamless
+        // The plugin scans on $(document).ready(), so we need jQuery to "see" the form first
+        await new Promise(resolve => setTimeout(resolve, 100));
+        console.log('⏳ Waited for jQuery to process form...');
+
         // NOW load Fiuu Seamless - it will scan and find our form!
         console.log('📦 Loading MOLPaySeamless script (form already exists)...');
         await loadScript(config.fiuuScriptUrl);
@@ -120,6 +125,70 @@ function SeamlessPaymentContent() {
           // Check if form has submit handler attached
           const events = window.$._data($forms[0], 'events');
           console.log('📋 Form events attached:', events);
+
+          if (!events || !events.submit) {
+            console.warn('⚠️ Plugin did not attach submit handler - will manually intercept');
+
+            // Manually intercept form submission since plugin didn't attach
+            $forms.on('submit', async function(e) {
+              e.preventDefault();
+              console.log('🔄 Manual submit intercept - fetching payment params...');
+
+              try {
+                const formData = new FormData(this);
+                const response = await fetch('/api/payments/seamless-process', {
+                  method: 'POST',
+                  body: formData,
+                });
+
+                const params = await response.json();
+                console.log('✅ Got params:', params);
+
+                if (params.status === false) {
+                  alert(`Payment Error: ${params.error_desc}`);
+                  return;
+                }
+
+                // Open Fiuu payment in popup window
+                const popupWidth = 800;
+                const popupHeight = 600;
+                const left = (screen.width - popupWidth) / 2;
+                const top = (screen.height - popupHeight) / 2;
+
+                const popupUrl = `https://pay.fiuu.com/RMS/pay/${params.mpsmerchantid}?` + new URLSearchParams({
+                  amount: params.mpsamount,
+                  orderid: params.mpsorderid,
+                  bill_name: params.mpsbill_name,
+                  bill_email: params.mpsbill_email,
+                  bill_mobile: params.mpsbill_mobile || '',
+                  bill_desc: params.mpsbill_desc,
+                  country: params.mpscountry,
+                  vcode: params.mpsvcode,
+                  currency: params.mpscurrency,
+                  langcode: params.mpslangcode,
+                  channel: params.mpschannel,
+                  returnurl: params.mpsreturnurl,
+                }).toString();
+
+                console.log('🚀 Opening popup:', popupUrl);
+
+                const popup = window.open(
+                  popupUrl,
+                  'fiuu_payment',
+                  `width=${popupWidth},height=${popupHeight},left=${left},top=${top},resizable=yes,scrollbars=yes`
+                );
+
+                if (!popup) {
+                  alert('Popup was blocked! Please allow popups for this site.');
+                }
+              } catch (error) {
+                console.error('❌ Payment error:', error);
+                alert(`Payment failed: ${error}`);
+              }
+            });
+
+            console.log('✅ Manual submit handler attached');
+          }
         }
 
         console.log('✅ Setup complete - form should intercept on submit!');
