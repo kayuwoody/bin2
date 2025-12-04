@@ -132,6 +132,8 @@ function SeamlessPaymentContent() {
             // Manually intercept form submission since plugin didn't attach
             $forms.on('submit', async function(this: HTMLFormElement, e: any) {
               e.preventDefault();
+              e.stopPropagation(); // Prevent any other handlers from running
+              e.stopImmediatePropagation(); // Stop ALL other handlers
               console.log('🔄 Manual submit intercept - fetching payment params...');
 
               try {
@@ -146,7 +148,7 @@ function SeamlessPaymentContent() {
 
                 if (params.status === false) {
                   alert(`Payment Error: ${params.error_desc}`);
-                  return;
+                  return false; // Prevent any default action
                 }
 
                 // Open popup window first
@@ -163,8 +165,22 @@ function SeamlessPaymentContent() {
 
                 if (!popup) {
                   alert('Popup was blocked! Please allow popups for this site.');
-                  return;
+                  return false; // Prevent any default action
                 }
+
+                // Monitor popup for successful payment (when it closes or redirects to return URL)
+                const checkPopup = setInterval(() => {
+                  try {
+                    if (popup.closed) {
+                      clearInterval(checkPopup);
+                      console.log('🎉 Popup closed - payment completed or cancelled');
+                      // Close this tab too since payment is done
+                      window.close();
+                    }
+                  } catch (err) {
+                    // Cross-origin error means popup navigated away - that's expected
+                  }
+                }, 500);
 
                 // Create a form that POSTs to Fiuu
                 const paymentForm = document.createElement('form');
