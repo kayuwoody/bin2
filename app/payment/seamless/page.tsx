@@ -196,7 +196,10 @@ function SeamlessPaymentContent() {
                   langcode: params.mpslangcode,
                   channel: params.mpschannel,
                   returnurl: params.mpsreturnurl,
+                  callbackurl: params.mpscallbackurl, // IMPORTANT: was missing!
                 };
+
+                console.log('📋 Payment fields:', paymentFields);
 
                 Object.entries(paymentFields).forEach(([name, value]) => {
                   const input = document.createElement('input');
