@@ -95,24 +95,34 @@ function SeamlessPaymentContent() {
 
         console.log('✅ MOLPaySeamless verified');
 
-        // IMPORTANT: Manually trigger the plugin to scan for forms
-        // The plugin's auto-scan on $(document).ready() might not catch our dynamically created form
-        console.log('🔄 Manually triggering MOLPaySeamless to scan for forms...');
+        // The plugin scans on load, but we need to manually reinitialize
+        // Check if there's an init method we can call
+        console.log('🔄 Checking plugin initialization...');
 
-        // Force the plugin to re-scan by triggering a jQuery ready event
-        window.$(document).trigger('ready');
-
-        // Alternative: Manually find and log forms with role="molpayseamless"
         const $forms = window.$('form[role="molpayseamless"]');
         console.log('📋 Found forms with role="molpayseamless":', $forms.length);
 
         if ($forms.length === 0) {
           console.error('❌ No forms found! Form was not created properly.');
         } else {
-          console.log('✅ Form found in DOM, plugin should intercept it');
+          console.log('✅ Form found in DOM');
+
+          // Check if the plugin attached any data to the form
+          const formData = $forms.data();
+          console.log('📋 Form jQuery data:', formData);
+
+          // Try to manually trigger the plugin's form scanning
+          // The plugin should have attached on document ready, but let's force it
+          if (typeof window.$.molpayseamless !== 'undefined') {
+            console.log('🔧 Found molpayseamless object, trying to initialize...');
+          }
+
+          // Check if form has submit handler attached
+          const events = window.$._data($forms[0], 'events');
+          console.log('📋 Form events attached:', events);
         }
 
-        console.log('✅ Form should now intercept submissions and open popup!');
+        console.log('✅ Setup complete - form should intercept on submit!');
         scriptsLoaded.current = true;
         setLoading(false);
       } catch (err: any) {
