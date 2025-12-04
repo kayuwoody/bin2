@@ -168,14 +168,15 @@ function SeamlessPaymentContent() {
                   return false; // Prevent any default action
                 }
 
-                // Monitor popup for successful payment (when it closes or redirects to return URL)
+                // Monitor popup closure (popup will auto-close itself via seamless-return page)
+                // Parent tab stays open so user can continue using the app
                 const checkPopup = setInterval(() => {
                   try {
                     if (popup.closed) {
                       clearInterval(checkPopup);
                       console.log('🎉 Popup closed - payment completed or cancelled');
-                      // Close this tab too since payment is done
-                      window.close();
+                      console.log('✅ Parent tab remains open for user to continue');
+                      // DO NOT close parent tab - let user continue using the app
                     }
                   } catch (err) {
                     // Cross-origin error means popup navigated away - that's expected
@@ -214,6 +215,9 @@ function SeamlessPaymentContent() {
 
                 // Add all payment parameters as form fields
                 // Based on working redirect integration in fiuuService.ts
+                // Override returnurl to use seamless-return page (prevents cart sync loop)
+                const seamlessReturnURL = `${window.location.origin}/payment/seamless-return`;
+
                 const paymentFields = {
                   amount: params.mpsamount,
                   orderid: params.mpsorderid,
@@ -223,7 +227,7 @@ function SeamlessPaymentContent() {
                   bill_desc: params.mpsbill_desc,
                   currency: params.mpscurrency,
                   vcode: params.mpsvcode,
-                  returnurl: params.mpsreturnurl,
+                  returnurl: seamlessReturnURL, // Use seamless-return to auto-close popup
                   callbackurl: params.mpscallbackurl,
                   merchantID: params.mpsmerchantid, // IMPORTANT: was missing!
                   channel: params.mpschannel, // Should be 'creditAN' to force credit card
@@ -232,6 +236,7 @@ function SeamlessPaymentContent() {
                 console.log('📋 Payment fields:', paymentFields);
                 console.log('💳 Channel value:', params.mpschannel);
                 console.log('🎯 Expected channel: creditAN (for credit card forcing)');
+                console.log('🔄 Return URL:', seamlessReturnURL);
 
                 Object.entries(paymentFields).forEach(([name, value]) => {
                   const input = document.createElement('input');

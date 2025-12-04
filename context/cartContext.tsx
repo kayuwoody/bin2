@@ -124,8 +124,10 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
   // Save cart to localStorage whenever it changes
   // Skip on payment pages to prevent sync loops
   useEffect(() => {
-    // Don't sync if on payment seamless page
-    if (typeof window !== 'undefined' && window.location.pathname.includes('/payment/seamless')) {
+    // Don't sync if on payment seamless pages
+    if (typeof window !== 'undefined' &&
+        (window.location.pathname.includes('/payment/seamless') ||
+         window.location.pathname.includes('/payment/seamless-return'))) {
       return;
     }
 
@@ -146,8 +148,10 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
   // Listen for storage changes from other tabs/windows (for customer display)
   // Skip this on payment pages to prevent sync loops
   useEffect(() => {
-    // Don't sync if on payment seamless page
-    if (typeof window !== 'undefined' && window.location.pathname.includes('/payment/seamless')) {
+    // Don't sync if on payment seamless pages
+    if (typeof window !== 'undefined' &&
+        (window.location.pathname.includes('/payment/seamless') ||
+         window.location.pathname.includes('/payment/seamless-return'))) {
       console.log('⏭️ Skipping cart sync on payment page');
       return;
     }

@@ -177,6 +177,7 @@ export default function PaymentPage() {
             paymentMethod: "credit",
             customerName: "Coffee Oasis Customer",
             customerEmail: "customer@coffee-oasis.com.my",
+            customerPhone: "0123456789", // REQUIRED for credit card page
             description: `Order #${data.order.id}`,
           }),
         });
