@@ -101,15 +101,13 @@ function ModernSeamlessContent() {
       console.log('🚀 Triggering payment popup...');
 
       // Trigger payment (this opens the popup directly to payment form)
-      // Per support: provide ALL required fields in pay() function
+      // Match support example exactly - only these fields
       fiuu.pay({
         amount: amount,
         orderId: orderid,
         billName: bill_name,
         billEmail: bill_email,
-        billMobile: bill_mobile,  // REQUIRED field per wiki
         billDesc: bill_desc,
-        currency: currency,  // REQUIRED field per wiki
         returnUrl: returnurl,
         callbackUrl: callbackurl,
         notifyUrl: notifyurl,
