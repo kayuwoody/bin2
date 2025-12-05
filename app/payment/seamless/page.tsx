@@ -193,21 +193,11 @@ function SeamlessPaymentContent() {
                   ? 'https://sandbox-payment.fiuu.com'
                   : 'https://payment.fiuu.com';
 
-                // Channel forcing behavior:
-                // - Official seamless sample shows channel selection by default
-                // - Redirect integration uses indexAN.php to force credit card (per Fiuu support)
-                // - We're using indexAN.php + creditAN channel here, but may not work in:
-                //   * Sandbox mode (may be production-only feature)
-                //   * Seamless mode (may only work for redirect mode)
-                //   * Without merchant account configuration by Fiuu
-                // If channel selection appears, this is expected seamless behavior
-                //
-                // Alternatives to try if channel forcing needed:
-                // 1. Test in production mode (channel forcing may not work in sandbox)
-                // 2. Contact Fiuu support to enable channel forcing for your merchant account
-                // 3. Use standard URL without indexAN.php and let users choose payment method
-                //    Change to: `${baseURL}/RMS/pay/${params.mpsmerchantid}/index.php`
-                paymentForm.action = `${baseURL}/RMS/pay/${params.mpsmerchantid}/indexAN.php`;
+                // Seamless vs Redirect integration differences:
+                // - Redirect: Uses indexAN.php + channel='creditAN' (forces credit card per Fiuu support)
+                // - Seamless: Uses index.php + channel='credit' (per official seamless sample)
+                // Note: indexAN.php causes intl-tel-input errors in seamless mode
+                paymentForm.action = `${baseURL}/RMS/pay/${params.mpsmerchantid}/index.php`;
                 paymentForm.target = 'fiuu_payment'; // Submit to the popup window
                 paymentForm.style.display = 'none';
 
@@ -229,14 +219,14 @@ function SeamlessPaymentContent() {
                   vcode: params.mpsvcode,
                   returnurl: seamlessReturnURL, // Use seamless-return to auto-close popup
                   callbackurl: params.mpscallbackurl,
-                  merchantID: params.mpsmerchantid, // IMPORTANT: was missing!
-                  channel: params.mpschannel, // Should be 'creditAN' to force credit card
+                  merchantID: params.mpsmerchantid,
+                  channel: 'credit', // Use 'credit' for seamless (not 'creditAN' which is for redirect)
                 };
 
                 console.log('📋 Payment fields:', paymentFields);
-                console.log('💳 Channel value:', params.mpschannel);
-                console.log('🎯 Expected channel: creditAN (for credit card forcing)');
+                console.log('💳 Channel value: credit (seamless integration)');
                 console.log('🔄 Return URL:', seamlessReturnURL);
+                console.log('📝 bill_mobile:', paymentFields.bill_mobile || '(empty)');
 
                 Object.entries(paymentFields).forEach(([name, value]) => {
                   const input = document.createElement('input');
