@@ -82,47 +82,45 @@ export class FiuuService {
     console.log('  Generated vcode:', vcode);
     console.log('  Verify at: https://api.fiuu.com/RMS/query/vcode.php');
 
-    // Build form parameters
-    const formParams: Record<string, string> = {
+    // Build query parameters (per support example format)
+    // Note: merchantID is NOT included as a parameter (only in URL path)
+    // Note: bill_mobile is included even if empty (per support example)
+    const queryParams: Record<string, string> = {
       amount,
       orderid: orderID,
       bill_name,
       bill_email,
+      bill_mobile: bill_mobile || '', // Always include, even if empty
       bill_desc,
       currency,
       returnurl: returnURL,
       callbackurl: callbackURL,
       vcode,
-      // Add merchantID as parameter (in addition to URL path)
-      merchantID: this.merchantID,
-      // DO NOT include channel parameter for redirect mode
-      // indexAN.php in the URL forces credit card selection
     };
 
-    // Only include bill_mobile if it has a value
-    if (bill_mobile) {
-      formParams.bill_mobile = bill_mobile;
-    }
-
-    // Note: notifyURL is registered in Fiuu portal, not passed in URL
-    // But we include it in case Fiuu supports dynamic override
+    // Add notifyURL if provided
     if (notifyURL) {
-      formParams.notifyurl = notifyURL;
+      queryParams.notifyurl = notifyURL;
     }
 
-    // Per Fiuu support: Use channel-specific file for credit card forcing
-    // Using indexAN.php for both sandbox and production to force credit card selection
-    // Option 1 (using this): indexAN.php file approach
-    // Option 2 (didn't work): channel parameter
+    // Build complete URL with query params (GET request)
+    // Per Fiuu support: indexAN.php forces credit card selection
     const channelFile = 'indexAN.php';
-    const action = `${this.baseURL}/RMS/pay/${this.merchantID}/${channelFile}`;
+    const baseAction = `${this.baseURL}/RMS/pay/${this.merchantID}/${channelFile}`;
+
+    // Build query string
+    const queryString = Object.entries(queryParams)
+      .map(([key, value]) => `${key}=${encodeURIComponent(value)}`)
+      .join('&');
+
+    const action = `${baseAction}?${queryString}`;
 
     console.log(`💳 Using channel file: ${channelFile}`);
-    console.log(`📋 Payment action URL: ${action}`);
+    console.log(`📋 Complete payment URL: ${action}`);
 
     return {
       action,
-      params: formParams,
+      params: queryParams, // Keep for backwards compatibility
     };
   }
 
