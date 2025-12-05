@@ -184,11 +184,48 @@ export default function PaymentPage() {
 
         const paymentData = await paymentResponse.json();
 
-        if (paymentData.success && paymentData.paymentURL) {
-          console.log('💳 Redirecting to Fiuu payment (GET with indexAN.php)');
-          console.log('🔗 Payment URL:', paymentData.paymentURL);
+        if (paymentData.success && paymentData.formData) {
+          console.log('🚀 Opening modern Fiuu Seamless payment with ALL required fields');
+          console.log('📦 Payment params:', paymentData.formData.params);
 
-          // Use redirect integration (modern seamless script not loading)
+          const params = paymentData.formData.params;
+
+          // Build URL for modern seamless page with ALL required fields
+          const seamlessURL = new URL('/payment/modern-seamless', window.location.origin);
+          seamlessURL.searchParams.set('merchantID', params.merchantID);
+          seamlessURL.searchParams.set('amount', params.amount);
+          seamlessURL.searchParams.set('orderid', params.orderid);
+          seamlessURL.searchParams.set('bill_name', params.bill_name);
+          seamlessURL.searchParams.set('bill_email', params.bill_email);
+          seamlessURL.searchParams.set('bill_mobile', params.bill_mobile || '0123456789');  // REQUIRED
+          seamlessURL.searchParams.set('bill_desc', params.bill_desc);
+          seamlessURL.searchParams.set('currency', params.currency || 'MYR');  // REQUIRED
+          seamlessURL.searchParams.set('returnurl', params.returnurl);
+          seamlessURL.searchParams.set('callbackurl', params.callbackurl);
+          if (params.notifyurl) {
+            seamlessURL.searchParams.set('notifyurl', params.notifyurl);
+          }
+
+          console.log('🔗 Modern Seamless URL:', seamlessURL.toString());
+
+          // Open modern seamless page in new tab
+          const seamlessWindow = window.open(seamlessURL.toString(), '_blank');
+
+          if (!seamlessWindow) {
+            throw new Error("Unable to open payment window. Please allow popups and try again.");
+          }
+
+          console.log('✅ Modern seamless payment tab opened');
+
+          // Show message to user
+          setError(null);
+          setLoading(false);
+
+          return;
+        } else if (paymentData.success && paymentData.paymentURL) {
+          // Fallback to redirect if formData not available
+          console.log('💳 Fallback: Redirecting to Fiuu payment (GET with indexAN.php)');
+          console.log('🔗 Payment URL:', paymentData.paymentURL);
           window.location.href = paymentData.paymentURL;
           return;
         } else {

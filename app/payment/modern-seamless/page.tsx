@@ -67,7 +67,9 @@ function ModernSeamlessContent() {
       const orderid = searchParams.get('orderid') || '';
       const bill_name = searchParams.get('bill_name') || '';
       const bill_email = searchParams.get('bill_email') || '';
+      const bill_mobile = searchParams.get('bill_mobile') || '';
       const bill_desc = searchParams.get('bill_desc') || '';
+      const currency = searchParams.get('currency') || 'MYR';
       const returnurl = searchParams.get('returnurl') || '';
       const callbackurl = searchParams.get('callbackurl') || '';
       const notifyurl = searchParams.get('notifyurl') || '';
@@ -79,6 +81,8 @@ function ModernSeamlessContent() {
         orderid,
         bill_name,
         bill_email,
+        bill_mobile,
+        currency,
       });
 
       // Determine verify URL based on environment
@@ -97,12 +101,15 @@ function ModernSeamlessContent() {
       console.log('🚀 Triggering payment popup...');
 
       // Trigger payment (this opens the popup directly to payment form)
+      // Per support: provide ALL required fields in pay() function
       fiuu.pay({
         amount: amount,
         orderId: orderid,
         billName: bill_name,
         billEmail: bill_email,
+        billMobile: bill_mobile,  // REQUIRED field per wiki
         billDesc: bill_desc,
+        currency: currency,  // REQUIRED field per wiki
         returnUrl: returnurl,
         callbackUrl: callbackurl,
         notifyUrl: notifyurl,
