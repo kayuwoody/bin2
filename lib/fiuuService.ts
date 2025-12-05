@@ -118,9 +118,16 @@ export class FiuuService {
     console.log(`💳 Using channel file: ${channelFile}`);
     console.log(`📋 Complete payment URL: ${action}`);
 
+    // Include merchantID in params for modern seamless integration
+    // (but not in URL query string for redirect)
+    const paramsWithMerchant = {
+      ...queryParams,
+      merchantID: this.merchantID,
+    };
+
     return {
       action,
-      params: queryParams, // Keep for backwards compatibility
+      params: paramsWithMerchant, // Include merchantID for modern seamless
     };
   }
 

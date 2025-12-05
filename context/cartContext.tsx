@@ -127,6 +127,7 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
     // Don't sync if on payment seamless pages
     if (typeof window !== 'undefined' &&
         (window.location.pathname.includes('/payment/seamless') ||
+         window.location.pathname.includes('/payment/modern-seamless') ||
          window.location.pathname.includes('/payment/seamless-return'))) {
       return;
     }
@@ -151,6 +152,7 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
     // Don't sync if on payment seamless pages
     if (typeof window !== 'undefined' &&
         (window.location.pathname.includes('/payment/seamless') ||
+         window.location.pathname.includes('/payment/modern-seamless') ||
          window.location.pathname.includes('/payment/seamless-return'))) {
       console.log('⏭️ Skipping cart sync on payment page');
       return;
