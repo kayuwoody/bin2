@@ -95,8 +95,8 @@ export class FiuuService {
       vcode,
       // Add merchantID as parameter (in addition to URL path)
       merchantID: this.merchantID,
-      // Try forcing channel via form parameter
-      channel: 'creditAN',
+      // DO NOT include channel parameter for redirect mode
+      // indexAN.php in the URL forces credit card selection
     };
 
     // Only include bill_mobile if it has a value
