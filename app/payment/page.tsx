@@ -164,7 +164,7 @@ export default function PaymentPage() {
         }),
       });
 
-      // If credit card payment, open Fiuu Seamless in new tab
+      // If credit card payment, redirect to Fiuu
       if (method === "credit_card") {
         // Get payment parameters from API
         const paymentResponse = await fetch("/api/payments/initiate", {
@@ -177,49 +177,19 @@ export default function PaymentPage() {
             paymentMethod: "credit",
             customerName: "Coffee Oasis Customer",
             customerEmail: "customer@coffee-oasis.com.my",
-            customerPhone: "0123456789", // REQUIRED for credit card page
+            customerPhone: "0123456789", // Required for credit card page
             description: `Order #${data.order.id}`,
           }),
         });
 
         const paymentData = await paymentResponse.json();
 
-        if (paymentData.success && paymentData.formData) {
-          console.log('🚀 Opening Fiuu Seamless payment in new tab');
-          console.log('📦 Payment params:', paymentData.formData.params);
+        if (paymentData.success && paymentData.paymentURL) {
+          console.log('💳 Redirecting to Fiuu credit card payment (indexAN.php forces credit card)');
+          console.log('🔗 Payment URL:', paymentData.paymentURL);
 
-          const params = paymentData.formData.params;
-
-          // Build URL for seamless page with all payment parameters
-          const seamlessURL = new URL('/payment/seamless', window.location.origin);
-          seamlessURL.searchParams.set('merchantID', params.merchantID);
-          seamlessURL.searchParams.set('channel', params.channel);
-          seamlessURL.searchParams.set('amount', params.amount);
-          seamlessURL.searchParams.set('orderid', params.orderid);
-          seamlessURL.searchParams.set('bill_name', params.bill_name);
-          seamlessURL.searchParams.set('bill_email', params.bill_email);
-          seamlessURL.searchParams.set('bill_mobile', params.bill_mobile || '');
-          seamlessURL.searchParams.set('bill_desc', params.bill_desc);
-          seamlessURL.searchParams.set('currency', params.currency);
-          seamlessURL.searchParams.set('vcode', params.vcode);
-          seamlessURL.searchParams.set('returnurl', params.returnurl);
-          seamlessURL.searchParams.set('callbackurl', params.callbackurl);
-
-          console.log('🔗 Seamless URL:', seamlessURL.toString());
-
-          // Open seamless page in new tab
-          const seamlessWindow = window.open(seamlessURL.toString(), '_blank');
-
-          if (!seamlessWindow) {
-            throw new Error("Unable to open payment window. Please allow popups and try again.");
-          }
-
-          console.log('✅ Seamless payment tab opened');
-
-          // Show message to user
-          setError(null);
-          setLoading(false);
-
+          // Redirect to payment (uses indexAN.php to force credit card)
+          window.location.href = paymentData.paymentURL;
           return;
         } else {
           throw new Error("Failed to generate payment parameters");
