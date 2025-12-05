@@ -205,8 +205,8 @@ function SeamlessPaymentContent() {
 
                 // Add all payment parameters as form fields
                 // Based on working redirect integration in fiuuService.ts
-                // Override returnurl to use seamless-return page (prevents cart sync loop)
-                const seamlessReturnURL = `${window.location.origin}/payment/seamless-return`;
+                // Override returnurl to use API endpoint (which redirects to seamless-return page)
+                const seamlessReturnURL = `${window.location.origin}/api/payments/seamless-return`;
 
                 const paymentFields = {
                   amount: params.mpsamount,
