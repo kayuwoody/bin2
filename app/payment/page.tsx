@@ -202,6 +202,7 @@ export default function PaymentPage() {
           seamlessURL.searchParams.set('currency', params.currency || 'MYR');  // REQUIRED
           seamlessURL.searchParams.set('returnurl', params.returnurl);
           seamlessURL.searchParams.set('callbackurl', params.callbackurl);
+          seamlessURL.searchParams.set('vcode', params.vcode);  // REQUIRED for payment verification
           if (params.notifyurl) {
             seamlessURL.searchParams.set('notifyurl', params.notifyurl);
           }
