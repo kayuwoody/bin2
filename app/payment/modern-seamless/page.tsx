@@ -214,7 +214,7 @@ function ModernSeamlessContent() {
 
     const paymentForm = document.createElement('form');
     paymentForm.method = 'POST';
-    paymentForm.action = `${baseURL}/RMS/pay/${merchantID}/index.php`;
+    paymentForm.action = `${baseURL}/RMS/pay/${merchantID}/indexAN.php`;  // indexAN.php skips to credit card
     paymentForm.target = 'fiuu_payment';
     paymentForm.style.display = 'none';
 
