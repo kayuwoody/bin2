@@ -21,22 +21,25 @@ function ModernSeamlessContent() {
   useEffect(() => {
     const loadSeamlessScript = async () => {
       try {
-        console.log('📦 Loading modern Fiuu Seamless script...');
+        console.log('📦 Loading Fiuu Seamless script (correct URL from support)...');
 
         // Determine if sandbox or production
         const merchantID = searchParams.get('merchantID') || '';
         const isSandbox = merchantID.startsWith('SB_');
 
+        // Per Fiuu support: Use MOLPay_seamless.deco.js (not fiuu-seamless.min.js)
         const scriptUrl = isSandbox
-          ? 'https://sandbox-payment.fiuu.com/SeamlessPayment/fiuu-seamless.min.js'
-          : 'https://payment.fiuu.com/SeamlessPayment/fiuu-seamless.min.js';
+          ? 'https://sandbox-payment.fiuu.com/RMS/API/seamless/3.28/js/MOLPay_seamless.deco.js'
+          : 'https://pay.fiuu.com/RMS/API/seamless/3.28/js/MOLPay_seamless.deco.js';
+
+        console.log('📜 Script URL:', scriptUrl);
 
         // Load script
         const script = document.createElement('script');
         script.src = scriptUrl;
         script.async = true;
         script.onload = () => {
-          console.log('✅ Modern Fiuu Seamless script loaded');
+          console.log('✅ Fiuu Seamless script loaded successfully');
           scriptLoaded.current = true;
           setLoading(false);
           setReady(true);
