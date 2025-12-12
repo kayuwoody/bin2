@@ -187,12 +187,19 @@ function ModernSeamlessContent() {
     const vcode = searchParams.get('vcode') || '';
 
     console.log('💳 Using old MOLPay jQuery plugin API');
-    console.log('📋 Payment params:', {
+    console.log('📋 All payment params:', {
       merchantID,
       amount,
       orderid,
+      bill_name,
+      bill_email,
       bill_mobile,
+      bill_desc,
       currency,
+      returnurl,
+      callbackurl,
+      notifyurl,
+      vcode,
     });
 
     // Open popup window
@@ -218,6 +225,7 @@ function ModernSeamlessContent() {
     paymentForm.target = 'fiuu_payment';
     paymentForm.style.display = 'none';
 
+    // Build form fields - DO NOT include merchantID (it's in the URL path only)
     const fields = {
       amount,
       orderid,
@@ -228,10 +236,12 @@ function ModernSeamlessContent() {
       currency,
       returnurl,
       callbackurl,
+      vcode,  // Always include vcode (required for verification)
       ...(notifyurl && { notifyurl }),
-      ...(vcode && { vcode }),
-      merchantID,
     };
+
+    console.log('📤 Fields being sent to Fiuu:', fields);
+    console.log('🔗 Form action:', `${baseURL}/RMS/pay/${merchantID}/indexAN.php`);
 
     Object.entries(fields).forEach(([name, value]) => {
       if (value) {
@@ -247,7 +257,7 @@ function ModernSeamlessContent() {
     paymentForm.submit();
     document.body.removeChild(paymentForm);
 
-    console.log('🎉 Payment popup opened');
+    console.log('🎉 Payment form submitted to popup');
   };
 
   if (error) {
