@@ -63,6 +63,7 @@ function ModernSeamlessContent() {
               MOLPay: typeof (window as any).MOLPay,
               molpay: typeof (window as any).molpay,
               jQuery: typeof (window as any).jQuery,
+              jQueryFn: (window as any).jQuery ? Object.keys((window as any).jQuery.fn).filter((k: string) => k.toLowerCase().includes('mol') || k.toLowerCase().includes('fiuu')) : [],
             });
 
             resolve();
@@ -86,17 +87,34 @@ function ModernSeamlessContent() {
 
   const handlePayment = () => {
     try {
+      const $ = (window as any).jQuery;
+
       // Debug: Log what's available when button is clicked
       console.log('🔍 Window globals at button click:', {
         FiuuSeamless: typeof window.FiuuSeamless,
         MOLPay: typeof (window as any).MOLPay,
         molpay: typeof (window as any).molpay,
-        jQuery: typeof (window as any).jQuery,
+        jQuery: typeof $,
+        jQueryPlugins: $ ? Object.keys($.fn).filter((k: string) => k.toLowerCase().includes('mol') || k.toLowerCase().includes('fiuu')) : [],
       });
 
-      if (!window.FiuuSeamless) {
-        throw new Error('Fiuu Seamless library not loaded - check console for available globals');
+      // Try new API first, fall back to old jQuery plugin API
+      if (window.FiuuSeamless) {
+        console.log('Using new FiuuSeamless API');
+        useNewSeamlessAPI();
+      } else if ($ && $.fn.MOLPaySeamless) {
+        console.log('Using old jQuery MOLPaySeamless plugin API');
+        useOldJQueryAPI($);
+      } else {
+        throw new Error('No Fiuu payment API available - check console for available globals');
       }
+    } catch (err: any) {
+      console.error('❌ Payment error:', err);
+      setError(err.message || 'Payment failed');
+    }
+  };
+
+  const useNewSeamlessAPI = () => {
 
       // Get payment parameters
       const merchantID = searchParams.get('merchantID') || '';
@@ -151,11 +169,85 @@ function ModernSeamlessContent() {
       });
 
       console.log('🎉 Payment popup should be open now');
+  };
 
-    } catch (err: any) {
-      console.error('❌ Payment error:', err);
-      setError(err.message || 'Payment failed');
+  const useOldJQueryAPI = ($: any) => {
+    // Get payment parameters
+    const merchantID = searchParams.get('merchantID') || '';
+    const amount = searchParams.get('amount') || '';
+    const orderid = searchParams.get('orderid') || '';
+    const bill_name = searchParams.get('bill_name') || '';
+    const bill_email = searchParams.get('bill_email') || '';
+    const bill_mobile = searchParams.get('bill_mobile') || '';
+    const bill_desc = searchParams.get('bill_desc') || '';
+    const currency = searchParams.get('currency') || 'MYR';
+    const returnurl = searchParams.get('returnurl') || '';
+    const callbackurl = searchParams.get('callbackurl') || '';
+    const notifyurl = searchParams.get('notifyurl') || '';
+    const vcode = searchParams.get('vcode') || '';
+
+    console.log('💳 Using old MOLPay jQuery plugin API');
+    console.log('📋 Payment params:', {
+      merchantID,
+      amount,
+      orderid,
+      bill_mobile,
+      currency,
+    });
+
+    // Open popup window
+    const popup = window.open(
+      'about:blank',
+      'fiuu_payment',
+      `width=800,height=600,left=${(screen.width - 800) / 2},top=${(screen.height - 600) / 2},resizable=yes,scrollbars=yes`
+    );
+
+    if (!popup) {
+      throw new Error('Popup blocked! Please allow popups for this site.');
     }
+
+    // Create form that POSTs to Fiuu
+    const isSandbox = merchantID.startsWith('SB_');
+    const baseURL = isSandbox
+      ? 'https://sandbox-payment.fiuu.com'
+      : 'https://payment.fiuu.com';
+
+    const paymentForm = document.createElement('form');
+    paymentForm.method = 'POST';
+    paymentForm.action = `${baseURL}/RMS/pay/${merchantID}/index.php`;
+    paymentForm.target = 'fiuu_payment';
+    paymentForm.style.display = 'none';
+
+    const fields = {
+      amount,
+      orderid,
+      bill_name,
+      bill_email,
+      bill_mobile,
+      bill_desc,
+      currency,
+      returnurl,
+      callbackurl,
+      ...(notifyurl && { notifyurl }),
+      ...(vcode && { vcode }),
+      merchantID,
+    };
+
+    Object.entries(fields).forEach(([name, value]) => {
+      if (value) {
+        const input = document.createElement('input');
+        input.type = 'hidden';
+        input.name = name;
+        input.value = value as string;
+        paymentForm.appendChild(input);
+      }
+    });
+
+    document.body.appendChild(paymentForm);
+    paymentForm.submit();
+    document.body.removeChild(paymentForm);
+
+    console.log('🎉 Payment popup opened');
   };
 
   if (error) {
