@@ -21,33 +21,50 @@ function ModernSeamlessContent() {
   useEffect(() => {
     const loadSeamlessScript = async () => {
       try {
-        console.log('📦 Loading Fiuu Seamless script (correct URL from support)...');
+        console.log('📦 Loading jQuery and Fiuu Seamless script...');
 
         // Determine if sandbox or production
         const merchantID = searchParams.get('merchantID') || '';
         const isSandbox = merchantID.startsWith('SB_');
 
+        // Step 1: Load jQuery FIRST (required by MOLPay seamless)
+        const jqueryScript = document.createElement('script');
+        jqueryScript.src = 'https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js';
+        jqueryScript.async = false; // Load synchronously
+
+        await new Promise<void>((resolve, reject) => {
+          jqueryScript.onload = () => {
+            console.log('✅ jQuery loaded');
+            resolve();
+          };
+          jqueryScript.onerror = () => reject(new Error('Failed to load jQuery'));
+          document.body.appendChild(jqueryScript);
+        });
+
+        // Step 2: Load Fiuu Seamless script AFTER jQuery
         // Per Fiuu support: Use MOLPay_seamless.deco.js (not fiuu-seamless.min.js)
         const scriptUrl = isSandbox
           ? 'https://sandbox-payment.fiuu.com/RMS/API/seamless/3.28/js/MOLPay_seamless.deco.js'
           : 'https://pay.fiuu.com/RMS/API/seamless/3.28/js/MOLPay_seamless.deco.js';
 
-        console.log('📜 Script URL:', scriptUrl);
+        console.log('📜 Fiuu Script URL:', scriptUrl);
 
-        // Load script
-        const script = document.createElement('script');
-        script.src = scriptUrl;
-        script.async = true;
-        script.onload = () => {
-          console.log('✅ Fiuu Seamless script loaded successfully');
-          scriptLoaded.current = true;
-          setLoading(false);
-          setReady(true);
-        };
-        script.onerror = () => {
-          throw new Error('Failed to load Fiuu Seamless script');
-        };
-        document.body.appendChild(script);
+        const fiuuScript = document.createElement('script');
+        fiuuScript.src = scriptUrl;
+        fiuuScript.async = false;
+
+        await new Promise<void>((resolve, reject) => {
+          fiuuScript.onload = () => {
+            console.log('✅ Fiuu Seamless script loaded successfully');
+            resolve();
+          };
+          fiuuScript.onerror = () => reject(new Error('Failed to load Fiuu Seamless script'));
+          document.body.appendChild(fiuuScript);
+        });
+
+        scriptLoaded.current = true;
+        setLoading(false);
+        setReady(true);
       } catch (err: any) {
         console.error('❌ Failed to load Fiuu Seamless:', err);
         setError(err.message);
