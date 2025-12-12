@@ -56,6 +56,15 @@ function ModernSeamlessContent() {
         await new Promise<void>((resolve, reject) => {
           fiuuScript.onload = () => {
             console.log('✅ Fiuu Seamless script loaded successfully');
+
+            // Debug: Log what's actually available on window
+            console.log('🔍 Checking window globals:', {
+              FiuuSeamless: typeof window.FiuuSeamless,
+              MOLPay: typeof (window as any).MOLPay,
+              molpay: typeof (window as any).molpay,
+              jQuery: typeof (window as any).jQuery,
+            });
+
             resolve();
           };
           fiuuScript.onerror = () => reject(new Error('Failed to load Fiuu Seamless script'));
@@ -77,8 +86,16 @@ function ModernSeamlessContent() {
 
   const handlePayment = () => {
     try {
+      // Debug: Log what's available when button is clicked
+      console.log('🔍 Window globals at button click:', {
+        FiuuSeamless: typeof window.FiuuSeamless,
+        MOLPay: typeof (window as any).MOLPay,
+        molpay: typeof (window as any).molpay,
+        jQuery: typeof (window as any).jQuery,
+      });
+
       if (!window.FiuuSeamless) {
-        throw new Error('Fiuu Seamless library not loaded');
+        throw new Error('Fiuu Seamless library not loaded - check console for available globals');
       }
 
       // Get payment parameters
