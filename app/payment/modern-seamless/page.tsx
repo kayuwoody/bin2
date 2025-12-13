@@ -186,7 +186,7 @@ function ModernSeamlessContent() {
     const notifyurl = searchParams.get('notifyurl') || '';
     const vcode = searchParams.get('vcode') || '';
 
-    console.log('💳 Using old MOLPay jQuery plugin API');
+    console.log('💳 Using MOLPay jQuery plugin API with data attributes');
     console.log('📋 All payment params:', {
       merchantID,
       amount,
@@ -202,63 +202,58 @@ function ModernSeamlessContent() {
       vcode,
     });
 
-    // Open popup window
-    const popup = window.open(
-      'about:blank',
-      'fiuu_payment',
-      `width=800,height=600,left=${(screen.width - 800) / 2},top=${(screen.height - 600) / 2},resizable=yes,scrollbars=yes`
-    );
-
-    if (!popup) {
-      throw new Error('Popup blocked! Please allow popups for this site.');
+    // Create button with data attributes (per MOLPay seamless plugin docs)
+    const button = document.createElement('button');
+    button.type = 'button';
+    button.id = 'molpay-seamless-trigger';
+    button.setAttribute('data-toggle', 'molpayseamless');
+    button.setAttribute('data-mpsmerchantid', merchantID);
+    button.setAttribute('data-mpschannel', 'credit');  // Force credit card channel
+    button.setAttribute('data-mpsamount', amount);
+    button.setAttribute('data-mpsorderid', orderid);
+    button.setAttribute('data-mpsbill_name', bill_name);
+    button.setAttribute('data-mpsbill_email', bill_email);
+    button.setAttribute('data-mpsbill_mobile', bill_mobile);
+    button.setAttribute('data-mpsbill_desc', bill_desc);
+    button.setAttribute('data-mpscurrency', currency);
+    button.setAttribute('data-mpsreturnurl', returnurl);
+    button.setAttribute('data-mpscallbackurl', callbackurl);
+    button.setAttribute('data-mpsvcode', vcode);
+    if (notifyurl) {
+      button.setAttribute('data-mpsnotifyurl', notifyurl);
     }
+    button.style.display = 'none';
 
-    // Create form that POSTs to Fiuu
-    const isSandbox = merchantID.startsWith('SB_');
-    const baseURL = isSandbox
-      ? 'https://sandbox-payment.fiuu.com'
-      : 'https://payment.fiuu.com';
-
-    const paymentForm = document.createElement('form');
-    paymentForm.method = 'POST';
-    paymentForm.action = `${baseURL}/RMS/pay/${merchantID}/indexAN.php`;  // indexAN.php skips to credit card
-    paymentForm.target = 'fiuu_payment';
-    paymentForm.style.display = 'none';
-
-    // Build form fields - DO NOT include merchantID (it's in the URL path only)
-    const fields = {
-      amount,
-      orderid,
-      bill_name,
-      bill_email,
-      bill_mobile,
-      bill_desc,
-      currency,
-      returnurl,
-      callbackurl,
-      vcode,  // Always include vcode (required for verification)
-      channel: 'credit',  // Force credit card channel (bypasses selection)
-      ...(notifyurl && { notifyurl }),
-    };
-
-    console.log('📤 Fields being sent to Fiuu:', fields);
-    console.log('🔗 Form action:', `${baseURL}/RMS/pay/${merchantID}/indexAN.php`);
-
-    Object.entries(fields).forEach(([name, value]) => {
-      if (value) {
-        const input = document.createElement('input');
-        input.type = 'hidden';
-        input.name = name;
-        input.value = value as string;
-        paymentForm.appendChild(input);
-      }
+    console.log('📤 MOLPay seamless button attributes:', {
+      'data-toggle': 'molpayseamless',
+      'data-mpsmerchantid': merchantID,
+      'data-mpschannel': 'credit',
+      'data-mpsamount': amount,
+      'data-mpsorderid': orderid,
+      'data-mpsvcode': vcode,
     });
 
-    document.body.appendChild(paymentForm);
-    paymentForm.submit();
-    document.body.removeChild(paymentForm);
+    // Add button to DOM
+    document.body.appendChild(button);
 
-    console.log('🎉 Payment form submitted to popup');
+    // Initialize MOLPaySeamless plugin and trigger click
+    try {
+      // Initialize the plugin on the button
+      $(button).MOLPaySeamless();
+
+      // Trigger the payment
+      $(button).trigger('click');
+
+      console.log('🎉 MOLPay seamless payment triggered');
+    } catch (err) {
+      console.error('❌ Failed to trigger MOLPay seamless:', err);
+      throw err;
+    } finally {
+      // Clean up button after a delay
+      setTimeout(() => {
+        document.body.removeChild(button);
+      }, 1000);
+    }
   };
 
   if (error) {
