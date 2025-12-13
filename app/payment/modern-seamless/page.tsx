@@ -237,6 +237,7 @@ function ModernSeamlessContent() {
       returnurl,
       callbackurl,
       vcode,  // Always include vcode (required for verification)
+      channel: 'credit',  // Force credit card channel (bypasses selection)
       ...(notifyurl && { notifyurl }),
     };
 
