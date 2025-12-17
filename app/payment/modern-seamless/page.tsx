@@ -4,13 +4,6 @@ import { useEffect, useRef, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { Suspense } from "react";
 
-// Declare global types for Fiuu Seamless
-declare global {
-  interface Window {
-    FiuuSeamless: any;
-  }
-}
-
 function ModernSeamlessContent() {
   const searchParams = useSearchParams();
   const [error, setError] = useState<string | null>(null);
