@@ -202,35 +202,41 @@ function ModernSeamlessContent() {
       vcode,
     });
 
-    // Create button with data attributes (per MOLPay seamless plugin docs)
+    // Create button with data attributes (per Fiuu support example)
+    // IMPORTANT: Attribute names must NOT have underscores (billname not bill_name)
     const button = document.createElement('button');
     button.type = 'button';
     button.id = 'molpay-seamless-trigger';
     button.setAttribute('data-toggle', 'molpayseamless');
     button.setAttribute('data-mpsmerchantid', merchantID);
-    button.setAttribute('data-mpschannel', 'credit');  // Force credit card channel
     button.setAttribute('data-mpsamount', amount);
     button.setAttribute('data-mpsorderid', orderid);
-    button.setAttribute('data-mpsbill_name', bill_name);
-    button.setAttribute('data-mpsbill_email', bill_email);
-    button.setAttribute('data-mpsbill_mobile', bill_mobile);
-    button.setAttribute('data-mpsbill_desc', bill_desc);
+    button.setAttribute('data-mpsbillname', bill_name);      // NO underscore!
+    button.setAttribute('data-mpsbillemail', bill_email);    // NO underscore!
+    button.setAttribute('data-mpsbilldesc', bill_desc);      // NO underscore!
     button.setAttribute('data-mpscurrency', currency);
     button.setAttribute('data-mpsreturnurl', returnurl);
     button.setAttribute('data-mpscallbackurl', callbackurl);
-    button.setAttribute('data-mpsvcode', vcode);
-    if (notifyurl) {
-      button.setAttribute('data-mpsnotifyurl', notifyurl);
+    button.setAttribute('data-mpsnotifyurl', notifyurl);
+    // Note: vcode might be needed for verification, keeping it
+    if (vcode) {
+      button.setAttribute('data-mpsvcode', vcode);
     }
     button.style.display = 'none';
 
-    console.log('📤 MOLPay seamless button attributes:', {
+    console.log('📤 MOLPay seamless button attributes (matching Fiuu support example):', {
       'data-toggle': 'molpayseamless',
       'data-mpsmerchantid': merchantID,
-      'data-mpschannel': 'credit',
       'data-mpsamount': amount,
       'data-mpsorderid': orderid,
-      'data-mpsvcode': vcode,
+      'data-mpsbillname': bill_name,
+      'data-mpsbillemail': bill_email,
+      'data-mpsbilldesc': bill_desc,
+      'data-mpscurrency': currency,
+      'data-mpsreturnurl': returnurl,
+      'data-mpscallbackurl': callbackurl,
+      'data-mpsnotifyurl': notifyurl,
+      'data-mpsvcode': vcode ? 'present' : 'missing',
     });
 
     // Add button to DOM
