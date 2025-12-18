@@ -69,13 +69,13 @@ export default function PaymentPage() {
           document.body.appendChild(jqueryScript);
         });
 
-        // Step 2: Load MOLPay Seamless script
-        const isSandbox = process.env.NEXT_PUBLIC_FIUU_SANDBOX_MODE === 'true';
+        // Step 2: Load MOLPay Seamless script (sandbox)
+        // TODO: Make this dynamic based on merchant ID or environment
         const molpayScript = document.createElement('script');
-        molpayScript.src = isSandbox
-          ? 'https://sandbox-payment.fiuu.com/RMS/API/seamless/3.28/js/MOLPay_seamless.deco.js'
-          : 'https://pay.fiuu.com/RMS/API/seamless/3.28/js/MOLPay_seamless.deco.js';
+        molpayScript.src = 'https://sandbox-payment.fiuu.com/RMS/API/seamless/3.28/js/MOLPay_seamless.deco.js';
         molpayScript.async = false;
+
+        console.log('📜 Loading MOLPay script:', molpayScript.src);
 
         await new Promise<void>((resolve, reject) => {
           molpayScript.onload = () => {
