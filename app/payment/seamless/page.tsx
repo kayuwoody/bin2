@@ -4,14 +4,6 @@ import { useEffect, useRef, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { Suspense } from "react";
 
-// Declare jQuery types
-declare global {
-  interface Window {
-    $: any;
-    jQuery: any;
-  }
-}
-
 function SeamlessPaymentContent() {
   const searchParams = useSearchParams();
   const [error, setError] = useState<string | null>(null);
