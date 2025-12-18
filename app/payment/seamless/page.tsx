@@ -86,7 +86,7 @@ function SeamlessPaymentContent() {
         console.log('✅ Fiuu Seamless loaded - should have found form');
 
         // Verify plugin
-        if (!window.$ || typeof window.$.fn.MOLPaySeamless !== 'function') {
+        if (!(window as any).$ || typeof (window as any).$.fn.MOLPaySeamless !== 'function') {
           throw new Error('MOLPaySeamless plugin not available');
         }
 
@@ -96,7 +96,7 @@ function SeamlessPaymentContent() {
         // Check if there's an init method we can call
         console.log('🔄 Checking plugin initialization...');
 
-        const $forms = window.$('form[role="molpayseamless"]');
+        const $forms = (window as any).$('form[role="molpayseamless"]');
         console.log('📋 Found forms with role="molpayseamless":', $forms.length);
 
         if ($forms.length === 0) {
@@ -110,12 +110,12 @@ function SeamlessPaymentContent() {
 
           // Try to manually trigger the plugin's form scanning
           // The plugin should have attached on document ready, but let's force it
-          if (typeof window.$.molpayseamless !== 'undefined') {
+          if (typeof (window as any).$.molpayseamless !== 'undefined') {
             console.log('🔧 Found molpayseamless object, trying to initialize...');
           }
 
           // Check if form has submit handler attached
-          const events = window.$._data($forms[0], 'events');
+          const events = (window as any).$._data($forms[0], 'events');
           console.log('📋 Form events attached:', events);
 
           if (!events || !events.submit) {

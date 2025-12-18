@@ -10,6 +10,7 @@ declare global {
   interface Window {
     FiuuSeamless?: any;
     jQuery?: any;
+    $?: any;
   }
 }
 
