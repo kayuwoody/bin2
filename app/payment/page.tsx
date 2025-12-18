@@ -125,12 +125,10 @@ export default function PaymentPage() {
     button.setAttribute('data-mpsreturnurl', params.returnurl);
     button.setAttribute('data-mpscallbackurl', params.callbackurl);
     button.setAttribute('data-mpsnotifyurl', params.notifyurl || '');
-    if (params.vcode) {
-      button.setAttribute('data-mpsvcode', params.vcode);
-    }
+    // NOTE: Fiuu support example does NOT include vcode - seamless plugin generates it internally
     button.style.display = 'none';
 
-    console.log('📤 Seamless button attributes:', {
+    console.log('📤 Seamless button attributes (matching Fiuu support example):', {
       'data-mpsmerchantid': params.merchantID,
       'data-mpsamount': params.amount,
       'data-mpsorderid': params.orderid,
@@ -138,7 +136,9 @@ export default function PaymentPage() {
       'data-mpsbillemail': params.bill_email,
       'data-mpsbilldesc': params.bill_desc,
       'data-mpscurrency': params.currency,
-      'data-mpsvcode': params.vcode ? 'present' : 'missing',
+      'data-mpsreturnurl': params.returnurl,
+      'data-mpscallbackurl': params.callbackurl,
+      'data-mpsnotifyurl': params.notifyurl,
     });
 
     // Add button to DOM
