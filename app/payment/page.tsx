@@ -5,15 +5,6 @@ import { useRouter } from "next/navigation";
 import { useCart } from "@/context/cartContext";
 import QRCode from "react-qr-code";
 
-// Declare jQuery and FiuuSeamless on window
-declare global {
-  interface Window {
-    FiuuSeamless?: any;
-    jQuery?: any;
-    $?: any;
-  }
-}
-
 export default function PaymentPage() {
   const router = useRouter();
   const { cartItems, clearCart } = useCart();
@@ -23,8 +14,6 @@ export default function PaymentPage() {
   const [paymentMethod, setPaymentMethod] = useState<"bank_qr" | "credit_card" | null>(null);
   const [showQRCode, setShowQRCode] = useState(false);
   const qrRef = useRef<HTMLDivElement>(null);
-  const [seamlessReady, setSeamlessReady] = useState(false);
-  const scriptsLoaded = useRef(false);
 
   // Calculate total (using finalPrice which includes discounts)
   const retailTotal = cartItems.reduce((sum, item) => sum + item.retailPrice * item.quantity, 0);
@@ -47,138 +36,6 @@ export default function PaymentPage() {
     }
   }, [cartItems, order]); // Re-run when cart or order changes
 
-  // Load Fiuu Seamless scripts (jQuery + MOLPay plugin)
-  useEffect(() => {
-    if (scriptsLoaded.current) return;
-
-    const loadSeamlessScripts = async () => {
-      try {
-        console.log('📜 Loading Fiuu Seamless scripts...');
-
-        // Step 1: Load jQuery first
-        const jqueryScript = document.createElement('script');
-        jqueryScript.src = 'https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js';
-        jqueryScript.async = false;
-
-        await new Promise<void>((resolve, reject) => {
-          jqueryScript.onload = () => {
-            console.log('✅ jQuery loaded');
-            resolve();
-          };
-          jqueryScript.onerror = () => reject(new Error('Failed to load jQuery'));
-          document.body.appendChild(jqueryScript);
-        });
-
-        // Step 2: Load MOLPay Seamless script (sandbox)
-        // TODO: Make this dynamic based on merchant ID or environment
-        const molpayScript = document.createElement('script');
-        molpayScript.src = 'https://sandbox-payment.fiuu.com/RMS/API/seamless/3.28/js/MOLPay_seamless.deco.js';
-        molpayScript.async = false;
-
-        console.log('📜 Loading MOLPay script:', molpayScript.src);
-
-        await new Promise<void>((resolve, reject) => {
-          molpayScript.onload = () => {
-            console.log('✅ MOLPay Seamless script loaded');
-            console.log('🔍 jQuery plugin available:', typeof (window as any).jQuery?.fn?.MOLPaySeamless);
-            resolve();
-          };
-          molpayScript.onerror = () => reject(new Error('Failed to load MOLPay script'));
-          document.body.appendChild(molpayScript);
-        });
-
-        scriptsLoaded.current = true;
-        setSeamlessReady(true);
-        console.log('✅ Fiuu Seamless ready');
-      } catch (err: any) {
-        console.error('❌ Failed to load Fiuu Seamless scripts:', err);
-        setError('Failed to load payment system. Please refresh the page.');
-      }
-    };
-
-    loadSeamlessScripts();
-  }, []);
-
-  // Trigger Fiuu Seamless payment using jQuery plugin
-  const triggerSeamlessPayment = (params: any) => {
-    const $ = (window as any).jQuery;
-
-    if (!$ || !$.fn.MOLPaySeamless) {
-      throw new Error('MOLPay Seamless plugin not loaded');
-    }
-
-    console.log('💳 Creating MOLPay seamless button with data attributes');
-
-    // Create button with data attributes (per Fiuu support example)
-    // IMPORTANT: Attribute names must NOT have underscores (billname not bill_name)
-    const button = document.createElement('button');
-    button.type = 'button';
-    button.id = 'molpay-seamless-trigger';
-    button.textContent = 'Click to pay (auto-clicking in 1s...)';
-    button.setAttribute('data-toggle', 'molpayseamless');
-    button.setAttribute('data-mpsmerchantid', params.merchantID);
-    button.setAttribute('data-mpschannel', 'creditAN');  // Force credit card channel
-    button.setAttribute('data-mpsamount', params.amount);
-    button.setAttribute('data-mpsorderid', params.orderid);
-    button.setAttribute('data-mpsbillname', params.bill_name);      // NO underscore!
-    button.setAttribute('data-mpsbillemail', params.bill_email);    // NO underscore!
-    button.setAttribute('data-mpsbilldesc', params.bill_desc);      // NO underscore!
-    button.setAttribute('data-mpscurrency', params.currency);
-    button.setAttribute('data-mpsreturnurl', params.returnurl);
-    button.setAttribute('data-mpscallbackurl', params.callbackurl);
-    button.setAttribute('data-mpsnotifyurl', params.notifyurl || '');
-    // NOTE: Fiuu support example does NOT include vcode - seamless plugin generates it internally
-    // Make button visible for debugging
-    button.style.position = 'fixed';
-    button.style.top = '50%';
-    button.style.left = '50%';
-    button.style.transform = 'translate(-50%, -50%)';
-    button.style.zIndex = '9999';
-    button.style.padding = '20px 40px';
-    button.style.fontSize = '18px';
-    button.style.backgroundColor = '#4CAF50';
-    button.style.color = 'white';
-    button.style.border = 'none';
-    button.style.borderRadius = '8px';
-    button.style.cursor = 'pointer';
-
-    console.log('📤 Seamless button attributes (matching Fiuu support example):', {
-      'data-mpsmerchantid': params.merchantID,
-      'data-mpschannel': 'creditAN',
-      'data-mpsamount': params.amount,
-      'data-mpsorderid': params.orderid,
-      'data-mpsbillname': params.bill_name,
-      'data-mpsbillemail': params.bill_email,
-      'data-mpsbilldesc': params.bill_desc,
-      'data-mpscurrency': params.currency,
-      'data-mpsreturnurl': params.returnurl,
-      'data-mpscallbackurl': params.callbackurl,
-      'data-mpsnotifyurl': params.notifyurl,
-    });
-
-    // Add button to DOM
-    document.body.appendChild(button);
-
-    try {
-      // Initialize the plugin on the button
-      console.log('🔧 Initializing MOLPaySeamless plugin...');
-      $(button).MOLPaySeamless();
-
-      // Auto-click after a short delay to let plugin initialize
-      setTimeout(() => {
-        console.log('🖱️ Auto-clicking button with native click()...');
-        button.click(); // Use native click instead of jQuery trigger
-      }, 1000);
-
-      console.log('✅ MOLPay seamless button created - will auto-click in 1 second');
-    } catch (err) {
-      console.error('❌ Failed to trigger MOLPay seamless:', err);
-      if (document.body.contains(button)) {
-        document.body.removeChild(button);
-      }
-      throw err;
-    }
-  };
 
   // Download QR code as image
   const downloadQRCode = () => {
@@ -308,7 +165,7 @@ export default function PaymentPage() {
         }),
       });
 
-      // If credit card payment, trigger Fiuu Seamless popup
+      // If credit card payment, redirect to Fiuu payment page
       if (method === "credit_card") {
         // Get payment parameters from API
         const paymentResponse = await fetch("/api/payments/initiate", {
@@ -328,21 +185,15 @@ export default function PaymentPage() {
 
         const paymentData = await paymentResponse.json();
 
-        if (!paymentData.success || !paymentData.formData) {
-          throw new Error("Failed to generate payment parameters");
+        if (!paymentData.success || !paymentData.paymentURL) {
+          throw new Error("Failed to generate payment URL");
         }
 
-        const params = paymentData.formData.params;
+        console.log('💳 Redirecting to Fiuu payment page');
+        console.log('🔗 Payment URL:', paymentData.paymentURL);
 
-        console.log('💳 Triggering Fiuu Seamless popup payment');
-        console.log('📦 Payment params:', params);
-
-        // Trigger seamless payment using jQuery plugin
-        triggerSeamlessPayment(params);
-
-        // Show message to user that popup should open
-        setError(null);
-        setLoading(false);
+        // Redirect to Fiuu payment page
+        window.location.href = paymentData.paymentURL;
 
         return;
       }
