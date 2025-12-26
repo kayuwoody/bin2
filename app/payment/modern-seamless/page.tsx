@@ -52,7 +52,7 @@ function ModernSeamlessContent() {
 
             // Debug: Log what's actually available on window
             console.log('🔍 Checking window globals:', {
-              FiuuSeamless: typeof window.FiuuSeamless,
+              FiuuSeamless: typeof (window as any).FiuuSeamless,
               MOLPay: typeof (window as any).MOLPay,
               molpay: typeof (window as any).molpay,
               jQuery: typeof (window as any).jQuery,
@@ -84,7 +84,7 @@ function ModernSeamlessContent() {
 
       // Debug: Log what's available when button is clicked
       console.log('🔍 Window globals at button click:', {
-        FiuuSeamless: typeof window.FiuuSeamless,
+        FiuuSeamless: typeof (window as any).FiuuSeamless,
         MOLPay: typeof (window as any).MOLPay,
         molpay: typeof (window as any).molpay,
         jQuery: typeof $,
@@ -92,7 +92,7 @@ function ModernSeamlessContent() {
       });
 
       // Try new API first, fall back to old jQuery plugin API
-      if (window.FiuuSeamless) {
+      if ((window as any).FiuuSeamless) {
         console.log('Using new FiuuSeamless API');
         useNewSeamlessAPI();
       } else if ($ && $.fn.MOLPaySeamless) {
@@ -140,7 +140,7 @@ function ModernSeamlessContent() {
         : 'https://payment.fiuu.com/RMS/verify';
 
       // Initialize Fiuu Seamless (modern API)
-      const fiuu = new window.FiuuSeamless({
+      const fiuu = new (window as any).FiuuSeamless({
         merchantId: merchantID,
         verifyUrl: verifyUrl,
       });
