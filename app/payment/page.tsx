@@ -371,7 +371,7 @@ export default function PaymentPage() {
             <span className="flex items-center gap-3">
               <span className="text-2xl">💳</span>
               <div className="text-left">
-                <p className="font-semibold">Credit / Debit Card</p>
+                <p className="font-semibold">Online Payment</p>
                 <p className="text-sm text-purple-100">Pay with card or e-wallet</p>
               </div>
             </span>
