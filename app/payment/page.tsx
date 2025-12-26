@@ -114,6 +114,7 @@ export default function PaymentPage() {
     const button = document.createElement('button');
     button.type = 'button';
     button.id = 'molpay-seamless-trigger';
+    button.textContent = 'Click to pay (auto-clicking in 1s...)';
     button.setAttribute('data-toggle', 'molpayseamless');
     button.setAttribute('data-mpsmerchantid', params.merchantID);
     button.setAttribute('data-mpschannel', 'creditAN');  // Force credit card channel
@@ -127,7 +128,19 @@ export default function PaymentPage() {
     button.setAttribute('data-mpscallbackurl', params.callbackurl);
     button.setAttribute('data-mpsnotifyurl', params.notifyurl || '');
     // NOTE: Fiuu support example does NOT include vcode - seamless plugin generates it internally
-    button.style.display = 'none';
+    // Make button visible for debugging
+    button.style.position = 'fixed';
+    button.style.top = '50%';
+    button.style.left = '50%';
+    button.style.transform = 'translate(-50%, -50%)';
+    button.style.zIndex = '9999';
+    button.style.padding = '20px 40px';
+    button.style.fontSize = '18px';
+    button.style.backgroundColor = '#4CAF50';
+    button.style.color = 'white';
+    button.style.border = 'none';
+    button.style.borderRadius = '8px';
+    button.style.cursor = 'pointer';
 
     console.log('📤 Seamless button attributes (matching Fiuu support example):', {
       'data-mpsmerchantid': params.merchantID,
@@ -148,22 +161,22 @@ export default function PaymentPage() {
 
     try {
       // Initialize the plugin on the button
+      console.log('🔧 Initializing MOLPaySeamless plugin...');
       $(button).MOLPaySeamless();
 
-      // Trigger the payment
-      $(button).trigger('click');
+      // Auto-click after a short delay to let plugin initialize
+      setTimeout(() => {
+        console.log('🖱️ Auto-clicking button with native click()...');
+        button.click(); // Use native click instead of jQuery trigger
+      }, 1000);
 
-      console.log('✅ MOLPay seamless payment triggered - popup should open');
+      console.log('✅ MOLPay seamless button created - will auto-click in 1 second');
     } catch (err) {
       console.error('❌ Failed to trigger MOLPay seamless:', err);
+      if (document.body.contains(button)) {
+        document.body.removeChild(button);
+      }
       throw err;
-    } finally {
-      // Clean up button after a delay
-      setTimeout(() => {
-        if (document.body.contains(button)) {
-          document.body.removeChild(button);
-        }
-      }, 1000);
     }
   };
 
