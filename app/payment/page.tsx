@@ -116,6 +116,7 @@ export default function PaymentPage() {
     button.id = 'molpay-seamless-trigger';
     button.setAttribute('data-toggle', 'molpayseamless');
     button.setAttribute('data-mpsmerchantid', params.merchantID);
+    button.setAttribute('data-mpschannel', 'creditAN');  // Force credit card channel
     button.setAttribute('data-mpsamount', params.amount);
     button.setAttribute('data-mpsorderid', params.orderid);
     button.setAttribute('data-mpsbillname', params.bill_name);      // NO underscore!
@@ -130,6 +131,7 @@ export default function PaymentPage() {
 
     console.log('📤 Seamless button attributes (matching Fiuu support example):', {
       'data-mpsmerchantid': params.merchantID,
+      'data-mpschannel': 'creditAN',
       'data-mpsamount': params.amount,
       'data-mpsorderid': params.orderid,
       'data-mpsbillname': params.bill_name,
