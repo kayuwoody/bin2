@@ -96,6 +96,7 @@ export class FiuuService {
       returnurl: returnURL,
       callbackurl: callbackURL,
       vcode,
+      channel: 'credit', // Force credit card channel
     };
 
     // Add notifyURL if provided
