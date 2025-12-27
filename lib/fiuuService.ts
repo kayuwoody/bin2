@@ -147,7 +147,7 @@ export class FiuuService {
     this.secretKey = secretKey;
     this.sandboxMode = sandboxMode;
     this.baseURL = sandboxMode
-      ? "https://sandbox.merchant.razer.com"
+      ? "https://sandbox-payment.fiuu.com"
       : "https://pay.fiuu.com";
   }
 
@@ -514,7 +514,7 @@ export function getFiuuClientConfig(): {
   const merchantID = process.env.FIUU_MERCHANT_ID || "";
   const sandboxMode = process.env.FIUU_SANDBOX_MODE === "true";
   const apiHost = sandboxMode
-    ? "https://sandbox.merchant.razer.com"
+    ? "https://sandbox-payment.fiuu.com"
     : "https://pay.fiuu.com";
 
   return { merchantID, apiHost, sandboxMode };
