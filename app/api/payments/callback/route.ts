@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { getFiuuService } from '@/lib/fiuuService';
+import { getFiuuService, FiuuCallbackData } from '@/lib/fiuuService';
 import { updateWooOrder } from '@/lib/orderService';
 
 /**
@@ -30,7 +30,7 @@ export async function POST(req: Request) {
     const params = new URLSearchParams(body);
 
     // Extract Fiuu callback parameters (same as notify)
-    const callback = {
+    const callback: FiuuCallbackData = {
       tranID: params.get('tranID') || '',
       orderid: params.get('orderid') || '',
       status: params.get('status') || '',
@@ -38,10 +38,11 @@ export async function POST(req: Request) {
       amount: params.get('amount') || '',
       currency: params.get('currency') || '',
       paydate: params.get('paydate') || '',
-      skey: params.get('skey') || '',
       channel: params.get('channel') || '',
       appcode: params.get('appcode') || '',
-      error_desc: params.get('error_desc') || '',
+      skey: params.get('skey') || '',
+      error_code: params.get('error_code') || undefined,
+      error_desc: params.get('error_desc') || undefined,
     };
 
     console.log(`📞 Fiuu delayed callback for order ${callback.orderid}:`, {
