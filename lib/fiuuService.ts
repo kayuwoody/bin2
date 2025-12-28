@@ -266,11 +266,10 @@ export class FiuuService {
       currency,
       vcode,
       returnurl: returnURL,
-      channel, // Pass channel as query param for seamless
     });
 
-    // Use channel in path for standard redirect, but also include as query param
-    return `${this.baseURL}/RMS/pay/${this.merchantID}?${queryParams.toString()}`;
+    // Channel in URL path for direct payment method access
+    return `${this.baseURL}/RMS/pay/${this.merchantID}/${channel}?${queryParams.toString()}`;
   }
 
   /**
@@ -308,7 +307,7 @@ export class FiuuService {
 
     const vcode = this.generateVcode(amount, orderID);
 
-    // Build query parameters - channel as query param for seamless
+    // Build query parameters
     const queryParams = new URLSearchParams({
       amount,
       orderid: orderID,
@@ -320,7 +319,6 @@ export class FiuuService {
       returnurl: returnURL,
       callbackurl: callbackURL,
       vcode,
-      channel: paymentMethod, // Pass channel as query param for seamless
     });
 
     // Note: notifyURL is registered in Fiuu portal, not passed in URL
@@ -329,7 +327,8 @@ export class FiuuService {
       queryParams.append("notifyurl", notifyURL);
     }
 
-    return `${this.baseURL}/RMS/pay/${this.merchantID}?${queryParams.toString()}`;
+    // Channel in URL path for direct payment method access
+    return `${this.baseURL}/RMS/pay/${this.merchantID}/${paymentMethod}?${queryParams.toString()}`;
   }
 
   /**
