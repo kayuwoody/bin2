@@ -57,9 +57,9 @@ export async function POST(request: NextRequest) {
       orderID: String(orderID),
       amount: amountNum.toFixed(2),
       currency,
-      billName,
-      billEmail,
-      billMobile,
+      billName: billName || "Customer",
+      billEmail: billEmail || "customer@example.com",
+      billMobile: billMobile || "0123456789", // Default phone required for Fiuu's intl-tel-input
       billDesc: billDesc || `Order #${orderID}`,
     };
 

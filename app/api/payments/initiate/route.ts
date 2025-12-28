@@ -45,7 +45,7 @@ export async function POST(req: Request) {
       callbackURL: `${appURL}/api/payments/callback`,
       bill_name: customerName || 'Coffee Oasis Customer',
       bill_email: customerEmail || 'customer@coffee-oasis.com.my',
-      bill_mobile: customerPhone || '',
+      bill_mobile: customerPhone || '0123456789', // Default phone required for Fiuu's intl-tel-input
       bill_desc: description || `Order #${orderID}`,
     });
 
