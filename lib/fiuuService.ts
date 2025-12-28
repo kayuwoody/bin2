@@ -146,8 +146,10 @@ export class FiuuService {
     this.verifyKey = verifyKey;
     this.secretKey = secretKey;
     this.sandboxMode = sandboxMode;
+    // Fiuu sandbox domain: sandbox-payment.fiuu.com (per Fiuu support)
+    // Production domain: pay.fiuu.com
     this.baseURL = sandboxMode
-      ? "https://sandbox.fiuu.com"
+      ? "https://sandbox-payment.fiuu.com"
       : "https://pay.fiuu.com";
   }
 
@@ -514,7 +516,7 @@ export function getFiuuClientConfig(): {
   const merchantID = process.env.FIUU_MERCHANT_ID || "";
   const sandboxMode = process.env.FIUU_SANDBOX_MODE === "true";
   const apiHost = sandboxMode
-    ? "https://sandbox.fiuu.com"
+    ? "https://sandbox-payment.fiuu.com"
     : "https://pay.fiuu.com";
 
   return { merchantID, apiHost, sandboxMode };
