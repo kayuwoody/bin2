@@ -266,10 +266,13 @@ export class FiuuService {
       currency,
       vcode,
       returnurl: returnURL,
-      channel, // Channel as query param - direct path gives 404 on sandbox
     });
 
-    // Sandbox doesn't support channel in path, use query param instead
+    // Try multiple channel param formats to bypass channel selection
+    queryParams.append("channel", channel);
+    queryParams.append("mps_channel", channel);
+    queryParams.append("payment_id", channel);
+
     return `${this.baseURL}/RMS/pay/${this.merchantID}?${queryParams.toString()}`;
   }
 
@@ -308,7 +311,7 @@ export class FiuuService {
 
     const vcode = this.generateVcode(amount, orderID);
 
-    // Build query parameters - channel as query param (direct path gives 404 on sandbox)
+    // Build query parameters
     const queryParams = new URLSearchParams({
       amount,
       orderid: orderID,
@@ -320,16 +323,18 @@ export class FiuuService {
       returnurl: returnURL,
       callbackurl: callbackURL,
       vcode,
-      channel: paymentMethod, // Channel as query param
     });
 
+    // Try multiple channel param formats to bypass channel selection
+    queryParams.append("channel", paymentMethod);
+    queryParams.append("mps_channel", paymentMethod);
+    queryParams.append("payment_id", paymentMethod);
+
     // Note: notifyURL is registered in Fiuu portal, not passed in URL
-    // But we include it in case Fiuu supports dynamic override
     if (notifyURL) {
       queryParams.append("notifyurl", notifyURL);
     }
 
-    // Sandbox doesn't support channel in path, use query param instead
     return `${this.baseURL}/RMS/pay/${this.merchantID}?${queryParams.toString()}`;
   }
 
