@@ -11,7 +11,7 @@ export default function PaymentPage() {
   const [order, setOrder] = useState<any>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [paymentMethod, setPaymentMethod] = useState<"bank_qr" | "credit_card" | null>(null);
+  const [paymentMethod, setPaymentMethod] = useState<string | null>(null);
   const [showQRCode, setShowQRCode] = useState(false);
   const qrRef = useRef<HTMLDivElement>(null);
 
@@ -66,8 +66,18 @@ export default function PaymentPage() {
     img.src = 'data:image/svg+xml;base64,' + btoa(unescape(encodeURIComponent(svgData)));
   };
 
+  // Payment channel mapping
+  const PAYMENT_CHANNELS: Record<string, { fiuuChannel: string; label: string }> = {
+    credit_card: { fiuuChannel: "credit", label: "Credit Card" },
+    grabpay: { fiuuChannel: "GrabPay", label: "GrabPay" },
+    tng: { fiuuChannel: "TNG-EWALLET", label: "Touch 'n Go" },
+    boost: { fiuuChannel: "BOOST", label: "Boost" },
+    shopeepay: { fiuuChannel: "ShopeePay", label: "ShopeePay" },
+    fpx: { fiuuChannel: "fpx", label: "FPX Online Banking" },
+  };
+
   // Create order when payment method is selected
-  const handlePaymentMethodSelect = async (method: "bank_qr" | "credit_card") => {
+  const handlePaymentMethodSelect = async (method: string) => {
     setPaymentMethod(method);
     setLoading(true);
     setError(null);
@@ -164,8 +174,9 @@ export default function PaymentPage() {
         }),
       });
 
-      // If credit card payment, redirect to Fiuu payment page
-      if (method === "credit_card") {
+      // If Fiuu payment method, redirect to Fiuu payment page
+      const channelInfo = PAYMENT_CHANNELS[method];
+      if (channelInfo) {
         const paymentResponse = await fetch("/api/payments/initiate", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -173,7 +184,7 @@ export default function PaymentPage() {
             orderID: data.order.id,
             amount: finalTotal.toFixed(2),
             currency: "MYR",
-            paymentMethod: "credit", // Show all payment methods on Fiuu page
+            paymentMethod: channelInfo.fiuuChannel,
             customerName: "Coffee Oasis Customer",
             customerEmail: "customer@coffee-oasis.com.my",
             description: `Order #${data.order.id}`,
@@ -343,20 +354,7 @@ export default function PaymentPage() {
 
         {/* Payment Method Buttons */}
         <div className="space-y-3">
-          <button
-            onClick={() => handlePaymentMethodSelect("bank_qr")}
-            className="w-full p-4 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors flex items-center justify-between"
-          >
-            <span className="flex items-center gap-3">
-              <span className="text-2xl">📱</span>
-              <div className="text-left">
-                <p className="font-semibold">Bank QR Code</p>
-                <p className="text-sm text-blue-100">Scan QR to pay with your banking app</p>
-              </div>
-            </span>
-            <span className="text-2xl">→</span>
-          </button>
-
+          {/* Credit/Debit Card */}
           <button
             onClick={() => handlePaymentMethodSelect("credit_card")}
             className="w-full p-4 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors flex items-center justify-between"
@@ -365,7 +363,68 @@ export default function PaymentPage() {
               <span className="text-2xl">💳</span>
               <div className="text-left">
                 <p className="font-semibold">Credit / Debit Card</p>
-                <p className="text-sm text-purple-100">Pay with card or e-wallet</p>
+                <p className="text-sm text-purple-100">Visa, Mastercard</p>
+              </div>
+            </span>
+            <span className="text-2xl">→</span>
+          </button>
+
+          {/* E-Wallets Section */}
+          <div className="pt-2">
+            <p className="text-sm text-gray-500 mb-2 font-medium">E-Wallets</p>
+            <div className="grid grid-cols-2 gap-2">
+              <button
+                onClick={() => handlePaymentMethodSelect("tng")}
+                className="p-3 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors text-center"
+              >
+                <p className="font-semibold text-sm">Touch 'n Go</p>
+              </button>
+              <button
+                onClick={() => handlePaymentMethodSelect("grabpay")}
+                className="p-3 bg-green-500 text-white rounded-lg hover:bg-green-600 transition-colors text-center"
+              >
+                <p className="font-semibold text-sm">GrabPay</p>
+              </button>
+              <button
+                onClick={() => handlePaymentMethodSelect("boost")}
+                className="p-3 bg-red-500 text-white rounded-lg hover:bg-red-600 transition-colors text-center"
+              >
+                <p className="font-semibold text-sm">Boost</p>
+              </button>
+              <button
+                onClick={() => handlePaymentMethodSelect("shopeepay")}
+                className="p-3 bg-orange-500 text-white rounded-lg hover:bg-orange-600 transition-colors text-center"
+              >
+                <p className="font-semibold text-sm">ShopeePay</p>
+              </button>
+            </div>
+          </div>
+
+          {/* Online Banking */}
+          <button
+            onClick={() => handlePaymentMethodSelect("fpx")}
+            className="w-full p-4 bg-teal-600 text-white rounded-lg hover:bg-teal-700 transition-colors flex items-center justify-between"
+          >
+            <span className="flex items-center gap-3">
+              <span className="text-2xl">🏦</span>
+              <div className="text-left">
+                <p className="font-semibold">FPX Online Banking</p>
+                <p className="text-sm text-teal-100">Pay via your bank</p>
+              </div>
+            </span>
+            <span className="text-2xl">→</span>
+          </button>
+
+          {/* Bank QR (manual) */}
+          <button
+            onClick={() => handlePaymentMethodSelect("bank_qr")}
+            className="w-full p-4 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-colors flex items-center justify-between"
+          >
+            <span className="flex items-center gap-3">
+              <span className="text-2xl">📱</span>
+              <div className="text-left">
+                <p className="font-semibold">Bank QR Code</p>
+                <p className="text-sm text-gray-300">Manual QR payment</p>
               </div>
             </span>
             <span className="text-2xl">→</span>
