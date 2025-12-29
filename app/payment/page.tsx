@@ -1,9 +1,28 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { useCart } from "@/context/cartContext";
+import Script from "next/script";
 import QRCode from "react-qr-code";
+
+// Fiuu channel codes for Seamless integration
+const FIUU_CHANNELS: Record<string, string> = {
+  credit_card: "credit",
+  grabpay: "GrabPay",
+  tng: "TNG-EWALLET",
+  boost: "BOOST",
+  shopeepay: "ShopeePay",
+  fpx: "maybank2u", // Use specific bank for FPX
+};
+
+// Declare jQuery types
+declare global {
+  interface Window {
+    jQuery: any;
+    $: any;
+  }
+}
 
 export default function PaymentPage() {
   const router = useRouter();
@@ -13,7 +32,10 @@ export default function PaymentPage() {
   const [error, setError] = useState<string | null>(null);
   const [paymentMethod, setPaymentMethod] = useState<string | null>(null);
   const [showQRCode, setShowQRCode] = useState(false);
+  const [jqueryLoaded, setJqueryLoaded] = useState(false);
+  const [sdkLoaded, setSdkLoaded] = useState(false);
   const qrRef = useRef<HTMLDivElement>(null);
+  const fiuuBtnRef = useRef<HTMLButtonElement>(null);
 
   // Calculate total (using finalPrice which includes discounts)
   const retailTotal = cartItems.reduce((sum, item) => sum + item.retailPrice * item.quantity, 0);
@@ -34,7 +56,7 @@ export default function PaymentPage() {
         }),
       }).catch(err => console.error('Failed to set pending order:', err));
     }
-  }, [cartItems, order]); // Re-run when cart or order changes
+  }, [cartItems, order]);
 
   // Download QR code as image
   const downloadQRCode = () => {
@@ -66,15 +88,66 @@ export default function PaymentPage() {
     img.src = 'data:image/svg+xml;base64,' + btoa(unescape(encodeURIComponent(svgData)));
   };
 
-  // Payment channel mapping
-  const PAYMENT_CHANNELS: Record<string, { fiuuChannel: string; label: string }> = {
-    credit_card: { fiuuChannel: "credit", label: "Credit Card" },
-    grabpay: { fiuuChannel: "GrabPay", label: "GrabPay" },
-    tng: { fiuuChannel: "TNG-EWALLET", label: "Touch 'n Go" },
-    boost: { fiuuChannel: "BOOST", label: "Boost" },
-    shopeepay: { fiuuChannel: "ShopeePay", label: "ShopeePay" },
-    fpx: { fiuuChannel: "fpx", label: "FPX Online Banking" },
-  };
+  // Initialize Fiuu Seamless payment
+  const initFiuuSeamless = useCallback(async (channel: string, orderId: string, amount: string) => {
+    if (!window.jQuery || !sdkLoaded) {
+      console.error('Fiuu SDK not ready. jQuery:', !!window.jQuery, 'SDK:', sdkLoaded);
+      setError('Payment system still loading, please wait...');
+      setLoading(false);
+      return;
+    }
+
+    try {
+      console.log('Fetching Fiuu seamless params for channel:', channel);
+
+      // Get signed params from server
+      const response = await fetch('/api/fiuu/seamless-params', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          orderID: orderId,
+          amount: amount,
+          channel: channel,
+          billName: 'Coffee Oasis Customer',
+          billEmail: 'customer@coffee-oasis.com.my',
+          billMobile: '0123456789',
+          billDesc: `Order #${orderId}`,
+        }),
+      });
+
+      const data = await response.json();
+
+      if (!data.success) {
+        throw new Error(data.error || 'Failed to get payment params');
+      }
+
+      console.log('Got Fiuu params, initializing SDK...');
+      console.log('Params:', JSON.stringify(data.params, null, 2));
+
+      // Use the hidden button ref
+      const btn = fiuuBtnRef.current;
+      if (!btn) {
+        throw new Error('Payment button not found');
+      }
+
+      // Initialize MOLPaySeamless on the button
+      console.log('Calling MOLPaySeamless on button...');
+      window.jQuery(btn).MOLPaySeamless(data.params);
+
+      // Wait for SDK to attach handlers, then trigger
+      console.log('Waiting for SDK to attach, then clicking...');
+      setTimeout(() => {
+        console.log('Triggering click on Fiuu button');
+        window.jQuery(btn).trigger('click');
+        setLoading(false);
+      }, 200);
+
+    } catch (err: any) {
+      console.error('Fiuu Seamless error:', err);
+      setError(err.message);
+      setLoading(false);
+    }
+  }, [sdkLoaded]);
 
   // Create order when payment method is selected
   const handlePaymentMethodSelect = async (method: string) => {
@@ -91,7 +164,7 @@ export default function PaymentPage() {
       }
 
       // Calculate total discount across all items
-      const totalDiscount = cartItems.reduce((sum, item) => {
+      const totalDiscountCalc = cartItems.reduce((sum, item) => {
         if (item.discountReason) {
           return sum + ((item.retailPrice - item.finalPrice) * item.quantity);
         }
@@ -103,11 +176,10 @@ export default function PaymentPage() {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          guestId, // Include guestId for guest order tracking
+          guestId,
           line_items: cartItems.map((item) => {
             const meta_data: Array<{ key: string; value: string }> = [];
 
-            // Add discount metadata if applicable
             if (item.discountReason) {
               meta_data.push(
                 { key: "_discount_reason", value: item.discountReason },
@@ -116,10 +188,8 @@ export default function PaymentPage() {
               );
             }
 
-            // Add final price metadata (always)
             meta_data.push({ key: "_final_price", value: item.finalPrice.toString() });
 
-            // Add bundle metadata if this is a bundle product
             if (item.bundle) {
               meta_data.push(
                 { key: "_is_bundle", value: "true" },
@@ -129,7 +199,6 @@ export default function PaymentPage() {
                 { key: "_bundle_optional", value: JSON.stringify(item.bundle.selectedOptional) }
               );
 
-              // Store expanded components (already fetched at add-to-cart time)
               if (item.components) {
                 meta_data.push(
                   { key: "_bundle_components", value: JSON.stringify(item.components) }
@@ -145,8 +214,8 @@ export default function PaymentPage() {
               meta_data,
             };
           }),
-          meta_data: totalDiscount > 0 ? [
-            { key: "_total_discount", value: totalDiscount.toFixed(2) }
+          meta_data: totalDiscountCalc > 0 ? [
+            { key: "_total_discount", value: totalDiscountCalc.toFixed(2) }
           ] : [],
           billing: {
             first_name: "Walk-in Customer",
@@ -174,68 +243,46 @@ export default function PaymentPage() {
         }),
       });
 
-      // If Fiuu payment method, redirect to Fiuu payment page
-      const channelInfo = PAYMENT_CHANNELS[method];
-      if (channelInfo) {
-        const paymentResponse = await fetch("/api/payments/initiate", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            orderID: data.order.id,
-            amount: finalTotal.toFixed(2),
-            currency: "MYR",
-            paymentMethod: channelInfo.fiuuChannel,
-            customerName: "Coffee Oasis Customer",
-            customerEmail: "customer@coffee-oasis.com.my",
-            description: `Order #${data.order.id}`,
-          }),
-        });
-
-        const paymentData = await paymentResponse.json();
-
-        if (paymentData.success && paymentData.paymentURL) {
-          // Redirect to Fiuu payment page
-          window.location.href = paymentData.paymentURL;
-          return; // Don't continue to render below
-        } else {
-          throw new Error("Failed to generate payment URL");
-        }
-      }
-
       // If bank QR, show QR code display
       if (method === "bank_qr") {
         setShowQRCode(true);
+        setLoading(false);
+        return;
       }
+
+      // Get the Fiuu channel code and use Seamless SDK
+      const fiuuChannel = FIUU_CHANNELS[method];
+      if (fiuuChannel) {
+        await initFiuuSeamless(fiuuChannel, String(data.order.id), finalTotal.toFixed(2));
+      } else {
+        setLoading(false);
+      }
+
     } catch (err: any) {
       console.error("Order creation error:", err);
       setError(err.message);
       setPaymentMethod(null);
-    } finally {
       setLoading(false);
     }
   };
 
   const handlePaymentSuccess = async () => {
-    // Clear cart locally
     clearCart();
 
-    // Clear pending order and cart on server (broadcasts empty cart to customer display)
     await fetch('/api/cart/current', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        cart: [], // Explicitly clear server-side cart
+        cart: [],
         setPendingOrder: false,
       }),
     });
 
-    // Show success and redirect to products
-    alert(`✅ Payment confirmed! Order #${order.id} is being prepared.`);
+    alert(`Payment confirmed! Order #${order.id} is being prepared.`);
     router.push("/products");
   };
 
   const handleCancel = async () => {
-    // Clear pending order when payment is cancelled
     await fetch('/api/cart/current', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -262,7 +309,7 @@ export default function PaymentPage() {
       <div className="min-h-screen flex items-center justify-center bg-gray-100">
         <div className="text-center">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-gray-900 mx-auto mb-4"></div>
-          <p className="text-gray-700">Creating order...</p>
+          <p className="text-gray-700">Processing payment...</p>
         </div>
       </div>
     );
@@ -270,7 +317,6 @@ export default function PaymentPage() {
 
   // Show QR Code for bank_qr payment
   if (order && paymentMethod === "bank_qr" && showQRCode) {
-    // Generate QR code data (you can customize this with your payment details)
     const qrData = `https://coffee-oasis.com.my/pay?order=${order.id}&amount=${finalTotal.toFixed(2)}`;
 
     return (
@@ -278,31 +324,27 @@ export default function PaymentPage() {
         <div className="bg-white rounded-lg shadow-xl p-8 max-w-md w-full">
           <h2 className="text-2xl font-bold text-gray-900 mb-4 text-center">Scan QR Code to Pay</h2>
 
-          {/* Order Info */}
           <div className="bg-gray-50 rounded-lg p-4 mb-6">
             <p className="text-sm text-gray-500 mb-1">Order #{order.id}</p>
             <p className="text-3xl font-bold text-gray-900">RM {finalTotal.toFixed(2)}</p>
           </div>
 
-          {/* QR Code Display */}
           <div ref={qrRef} className="bg-white p-6 rounded-lg border-2 border-gray-200 mb-6 flex justify-center">
             <QRCode value={qrData} size={256} />
           </div>
 
-          {/* Instructions */}
           <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6">
             <p className="text-sm text-blue-800">
-              📱 Scan this QR code with your banking app to complete payment
+              Scan this QR code with your banking app to complete payment
             </p>
           </div>
 
-          {/* Action Buttons */}
           <div className="space-y-3">
             <button
               onClick={downloadQRCode}
               className="w-full px-6 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors font-semibold"
             >
-              ⬇️ Download QR Code
+              Download QR Code
             </button>
             <button
               onClick={handlePaymentSuccess}
@@ -325,10 +367,53 @@ export default function PaymentPage() {
   // Payment method selection screen
   return (
     <div className="min-h-screen bg-gray-100 flex items-center justify-center p-4">
+      {/* Load jQuery first */}
+      <Script
+        src="https://ajax.googleapis.com/ajax/libs/jquery/3.6.0/jquery.min.js"
+        strategy="beforeInteractive"
+        onLoad={() => {
+          console.log('jQuery loaded');
+          setJqueryLoaded(true);
+        }}
+      />
+
+      {/* Load Fiuu Seamless SDK after jQuery */}
+      {jqueryLoaded && (
+        <Script
+          src="https://pay.merchant.razer.com/RMS/API/seamless/latest/js/MOLPay_seamless.deco.js"
+          strategy="afterInteractive"
+          onLoad={() => {
+            console.log('Fiuu Seamless SDK loaded');
+            setSdkLoaded(true);
+          }}
+          onError={(e) => {
+            console.error('Failed to load Fiuu SDK:', e);
+          }}
+        />
+      )}
+
+      {/* Hidden button for Fiuu SDK - MUST stay in DOM */}
+      <button
+        ref={fiuuBtnRef}
+        id="fiuu-seamless-trigger"
+        type="button"
+        style={{ position: 'absolute', left: '-9999px', opacity: 0 }}
+        aria-hidden="true"
+      >
+        Pay
+      </button>
+
       <div className="bg-white rounded-lg shadow-lg p-8 max-w-md w-full">
         {/* Header */}
         <h1 className="text-2xl font-bold text-gray-900 mb-2">Select Payment Method</h1>
         <p className="text-gray-600 mb-6">How will the customer pay?</p>
+
+        {/* SDK Loading Status */}
+        {!sdkLoaded && (
+          <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3 mb-4">
+            <p className="text-sm text-yellow-800">Loading payment system...</p>
+          </div>
+        )}
 
         {/* Order Summary */}
         <div className="bg-gray-50 rounded-lg p-4 mb-6">
@@ -357,7 +442,8 @@ export default function PaymentPage() {
           {/* Credit/Debit Card */}
           <button
             onClick={() => handlePaymentMethodSelect("credit_card")}
-            className="w-full p-4 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors flex items-center justify-between"
+            disabled={!sdkLoaded}
+            className="w-full p-4 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors flex items-center justify-between disabled:opacity-50 disabled:cursor-not-allowed"
           >
             <span className="flex items-center gap-3">
               <span className="text-2xl">💳</span>
@@ -375,25 +461,29 @@ export default function PaymentPage() {
             <div className="grid grid-cols-2 gap-2">
               <button
                 onClick={() => handlePaymentMethodSelect("tng")}
-                className="p-3 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors text-center"
+                disabled={!sdkLoaded}
+                className="p-3 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors text-center disabled:opacity-50"
               >
                 <p className="font-semibold text-sm">Touch 'n Go</p>
               </button>
               <button
                 onClick={() => handlePaymentMethodSelect("grabpay")}
-                className="p-3 bg-green-500 text-white rounded-lg hover:bg-green-600 transition-colors text-center"
+                disabled={!sdkLoaded}
+                className="p-3 bg-green-500 text-white rounded-lg hover:bg-green-600 transition-colors text-center disabled:opacity-50"
               >
                 <p className="font-semibold text-sm">GrabPay</p>
               </button>
               <button
                 onClick={() => handlePaymentMethodSelect("boost")}
-                className="p-3 bg-red-500 text-white rounded-lg hover:bg-red-600 transition-colors text-center"
+                disabled={!sdkLoaded}
+                className="p-3 bg-red-500 text-white rounded-lg hover:bg-red-600 transition-colors text-center disabled:opacity-50"
               >
                 <p className="font-semibold text-sm">Boost</p>
               </button>
               <button
                 onClick={() => handlePaymentMethodSelect("shopeepay")}
-                className="p-3 bg-orange-500 text-white rounded-lg hover:bg-orange-600 transition-colors text-center"
+                disabled={!sdkLoaded}
+                className="p-3 bg-orange-500 text-white rounded-lg hover:bg-orange-600 transition-colors text-center disabled:opacity-50"
               >
                 <p className="font-semibold text-sm">ShopeePay</p>
               </button>
@@ -403,19 +493,20 @@ export default function PaymentPage() {
           {/* Online Banking */}
           <button
             onClick={() => handlePaymentMethodSelect("fpx")}
-            className="w-full p-4 bg-teal-600 text-white rounded-lg hover:bg-teal-700 transition-colors flex items-center justify-between"
+            disabled={!sdkLoaded}
+            className="w-full p-4 bg-teal-600 text-white rounded-lg hover:bg-teal-700 transition-colors flex items-center justify-between disabled:opacity-50"
           >
             <span className="flex items-center gap-3">
               <span className="text-2xl">🏦</span>
               <div className="text-left">
                 <p className="font-semibold">FPX Online Banking</p>
-                <p className="text-sm text-teal-100">Pay via your bank</p>
+                <p className="text-sm text-teal-100">Maybank2u</p>
               </div>
             </span>
             <span className="text-2xl">→</span>
           </button>
 
-          {/* Bank QR (manual) */}
+          {/* Bank QR (manual - doesn't need SDK) */}
           <button
             onClick={() => handlePaymentMethodSelect("bank_qr")}
             className="w-full p-4 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-colors flex items-center justify-between"
