@@ -300,7 +300,7 @@ const ProductListPage: React.FC = () => {
       </div>
 
       {/* Dynamic responsive grid - min 2 cols on mobile, scales up automatically */}
-      <div className="grid gap-3" style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(150px, 1fr))' }}>
+      <div className="grid grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-3">
         {filteredProducts.map(product => {
           const isOutOfStock = product.manage_stock && (product.stock_quantity ?? 0) === 0;
           return (
