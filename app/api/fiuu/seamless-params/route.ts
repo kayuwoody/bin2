@@ -37,7 +37,8 @@ export async function POST(req: Request) {
     const vcode = fiuu.generateVcode(amount, orderID);
 
     // Build mps-prefixed params for SDK
-    const params = {
+    // Note: Omitting mpscurrency to let Fiuu use default (sandbox may not support MYR)
+    const params: Record<string, string> = {
       mpsmerchantid: process.env.FIUU_MERCHANT_ID || '',
       mpschannel: channel,
       mpsamount: amount,
@@ -46,7 +47,6 @@ export async function POST(req: Request) {
       mpsbill_email: billEmail,
       mpsbill_mobile: billMobile,
       mpsbill_desc: billDesc || `Order #${orderID}`,
-      mpscurrency: currency,
       mpsvcode: vcode,
       mpsreturnurl: `${appURL}/api/fiuu/return`,
     };
