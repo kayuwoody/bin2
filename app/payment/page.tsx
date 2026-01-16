@@ -327,7 +327,7 @@ export default function PaymentPage() {
           strategy="afterInteractive"
         />
         <Script
-          src="https://pay.merchant.razer.com/RMS/API/seamless/latest/js/MOLPay_seamless.deco.js"
+          src="https://sandbox.merchant.razer.com/RMS/API/seamless/latest/js/MOLPay_seamless.deco.js"
           strategy="lazyOnload"
         />
         {/* Hidden button for Fiuu SDK - MUST stay in DOM even during loading */}
