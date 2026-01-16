@@ -321,6 +321,25 @@ export default function PaymentPage() {
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-100">
+        {/* Scripts must be present in all render paths */}
+        <Script
+          src="https://ajax.googleapis.com/ajax/libs/jquery/3.6.0/jquery.min.js"
+          strategy="afterInteractive"
+        />
+        <Script
+          src="https://pay.merchant.razer.com/RMS/API/seamless/latest/js/MOLPay_seamless.deco.js"
+          strategy="lazyOnload"
+        />
+        {/* Hidden button for Fiuu SDK - MUST stay in DOM even during loading */}
+        <button
+          ref={fiuuBtnRef}
+          id="fiuu-seamless-trigger"
+          type="button"
+          style={{ position: 'absolute', left: '-9999px', opacity: 0 }}
+          aria-hidden="true"
+        >
+          Pay
+        </button>
         <div className="text-center">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-gray-900 mx-auto mb-4"></div>
           <p className="text-gray-700">Processing payment...</p>
