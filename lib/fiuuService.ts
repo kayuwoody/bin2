@@ -146,10 +146,11 @@ export class FiuuService {
     this.verifyKey = verifyKey;
     this.secretKey = secretKey;
     this.sandboxMode = sandboxMode;
-    // TEMP: Force production to test if direct channel access works
     // Fiuu sandbox domain: sandbox-payment.fiuu.com (per Fiuu support)
     // Production domain: pay.fiuu.com
-    this.baseURL = "https://pay.fiuu.com"; // Force production for testing
+    this.baseURL = sandboxMode
+      ? "https://sandbox-payment.fiuu.com"
+      : "https://pay.fiuu.com";
   }
 
   /**
@@ -523,8 +524,9 @@ export function getFiuuClientConfig(): {
 } {
   const merchantID = process.env.FIUU_MERCHANT_ID || "";
   const sandboxMode = process.env.FIUU_SANDBOX_MODE === "true";
-  // TEMP: Force production to test if direct channel access works
-  const apiHost = "https://pay.fiuu.com";
+  const apiHost = sandboxMode
+    ? "https://sandbox-payment.fiuu.com"
+    : "https://pay.fiuu.com";
 
   return { merchantID, apiHost, sandboxMode };
 }
