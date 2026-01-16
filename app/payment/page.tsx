@@ -330,15 +330,15 @@ export default function PaymentPage() {
           src="https://sandbox.merchant.razer.com/RMS/API/seamless/latest/js/MOLPay_seamless.deco.js"
           strategy="lazyOnload"
         />
-        {/* Hidden button for Fiuu SDK - MUST stay in DOM even during loading */}
+        {/* Button for Fiuu SDK - visible for debugging */}
         <button
           ref={fiuuBtnRef}
           id="fiuu-seamless-trigger"
           type="button"
-          style={{ position: 'absolute', left: '-9999px', opacity: 0 }}
-          aria-hidden="true"
+          data-toggle="molpayseamless"
+          className="fixed bottom-4 right-4 bg-red-500 text-white px-4 py-2 rounded z-50"
         >
-          Pay
+          Fiuu Pay (Debug)
         </button>
         <div className="text-center">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-gray-900 mx-auto mb-4"></div>
@@ -408,19 +408,19 @@ export default function PaymentPage() {
 
       {/* Load Fiuu Seamless SDK after jQuery */}
       <Script
-        src="https://pay.merchant.razer.com/RMS/API/seamless/latest/js/MOLPay_seamless.deco.js"
+        src="https://sandbox.merchant.razer.com/RMS/API/seamless/latest/js/MOLPay_seamless.deco.js"
         strategy="lazyOnload"
       />
 
-      {/* Hidden button for Fiuu SDK - MUST stay in DOM */}
+      {/* Button for Fiuu SDK - visible for debugging */}
       <button
         ref={fiuuBtnRef}
         id="fiuu-seamless-trigger"
         type="button"
-        style={{ position: 'absolute', left: '-9999px', opacity: 0 }}
-        aria-hidden="true"
+        data-toggle="molpayseamless"
+        className="fixed bottom-4 right-4 bg-red-500 text-white px-4 py-2 rounded z-50"
       >
-        Pay
+        Fiuu Pay (Debug)
       </button>
 
       <div className="bg-white rounded-lg shadow-lg p-8 max-w-md w-full">
