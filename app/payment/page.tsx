@@ -32,10 +32,24 @@ export default function PaymentPage() {
   const [error, setError] = useState<string | null>(null);
   const [paymentMethod, setPaymentMethod] = useState<string | null>(null);
   const [showQRCode, setShowQRCode] = useState(false);
-  const [jqueryLoaded, setJqueryLoaded] = useState(false);
   const [sdkLoaded, setSdkLoaded] = useState(false);
   const qrRef = useRef<HTMLDivElement>(null);
   const fiuuBtnRef = useRef<HTMLButtonElement>(null);
+
+  // Check for jQuery and SDK loaded via polling (more reliable than onLoad)
+  useEffect(() => {
+    const checkLoaded = setInterval(() => {
+      if (window.jQuery && window.jQuery.fn.MOLPaySeamless) {
+        console.log('jQuery and Fiuu SDK both loaded!');
+        setSdkLoaded(true);
+        clearInterval(checkLoaded);
+      } else {
+        console.log('Waiting for SDK... jQuery:', !!window.jQuery, 'MOLPaySeamless:', !!(window.jQuery?.fn?.MOLPaySeamless));
+      }
+    }, 500);
+
+    return () => clearInterval(checkLoaded);
+  }, []);
 
   // Calculate total (using finalPrice which includes discounts)
   const retailTotal = cartItems.reduce((sum, item) => sum + item.retailPrice * item.quantity, 0);
@@ -370,27 +384,14 @@ export default function PaymentPage() {
       {/* Load jQuery first */}
       <Script
         src="https://ajax.googleapis.com/ajax/libs/jquery/3.6.0/jquery.min.js"
-        strategy="beforeInteractive"
-        onLoad={() => {
-          console.log('jQuery loaded');
-          setJqueryLoaded(true);
-        }}
+        strategy="afterInteractive"
       />
 
       {/* Load Fiuu Seamless SDK after jQuery */}
-      {jqueryLoaded && (
-        <Script
-          src="https://pay.merchant.razer.com/RMS/API/seamless/latest/js/MOLPay_seamless.deco.js"
-          strategy="afterInteractive"
-          onLoad={() => {
-            console.log('Fiuu Seamless SDK loaded');
-            setSdkLoaded(true);
-          }}
-          onError={(e) => {
-            console.error('Failed to load Fiuu SDK:', e);
-          }}
-        />
-      )}
+      <Script
+        src="https://pay.merchant.razer.com/RMS/API/seamless/latest/js/MOLPay_seamless.deco.js"
+        strategy="lazyOnload"
+      />
 
       {/* Hidden button for Fiuu SDK - MUST stay in DOM */}
       <button
