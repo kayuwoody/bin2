@@ -1,5 +1,5 @@
 // lib/customerService.ts
-import api from './wooApi';
+import { wcApi } from './wooClient';
 import { v4 as uuidv4 } from 'uuid';
 
 export async function createOrFindWooCustomer({ name, email, phone, address }: {
@@ -12,7 +12,7 @@ export async function createOrFindWooCustomer({ name, email, phone, address }: {
 
   // Try to find an existing customer
   const queryParam = email ? `email=${email}` : `role=all&search=${phone}`;
-  const { data: existing } = await api.get(`customers?${queryParam}`);
+  const { data: existing } = await wcApi.get(`customers?${queryParam}`);
 
   if (existing && existing.length > 0) {
     const customer = existing[0];
@@ -32,6 +32,6 @@ export async function createOrFindWooCustomer({ name, email, phone, address }: {
     ],
   };
 
-  const { data: newCustomer } = await api.post('customers', payload);
+  const { data: newCustomer } = await wcApi.post('customers', payload);
   return { clientId, wooCustomerId: newCustomer.id };
 }

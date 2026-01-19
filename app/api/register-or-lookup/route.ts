@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import woo from '@/lib/wooApi';
+import { wcApi } from '@/lib/wooClient';
 import { v4 as uuidv4 } from 'uuid';
 import { handleApiError, validationError } from '@/lib/api/error-handler';
 
@@ -14,7 +14,7 @@ export async function POST(req: NextRequest) {
 
     // Lookup existing customer in WooCommerce
     const searchQuery = email ? `email=${email}` : `search=${phone}`;
-    const { data: existing } = await woo.get(`customers?${searchQuery}`);
+    const { data: existing } = await wcApi.get(`customers?${searchQuery}`);
 
     let wooCustomerId: number | null = null;
 
@@ -22,7 +22,7 @@ export async function POST(req: NextRequest) {
       wooCustomerId = existing[0].id;
     } else {
       // Create new WooCommerce customer
-      const { data: created } = await woo.post('customers', {
+      const { data: created } = await wcApi.post('customers', {
         email,
         billing: {
           phone,

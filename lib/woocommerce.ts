@@ -1,4 +1,4 @@
-import woo from './wooApi';
+import { wcApi } from './wooClient';
 
 export interface WooProduct {
   id: number;
@@ -15,7 +15,7 @@ export interface WooProduct {
  */
 export async function getProductById(id: string): Promise<WooProduct | null> {
   try {
-    const { data } = await woo.get(`products/${id}`);
+    const { data } = await wcApi.get(`products/${id}`);
     return data;
   } catch (error) {
     console.error(`Failed to fetch product ${id}:`, error);
@@ -28,7 +28,7 @@ export async function getProductById(id: string): Promise<WooProduct | null> {
  */
 export async function getAllProducts(): Promise<WooProduct[]> {
   try {
-    const { data } = await woo.get('products');
+    const { data } = await wcApi.get('products');
     return data;
   } catch (error) {
     console.error('Failed to fetch products:', error);
@@ -41,7 +41,7 @@ export async function getAllProducts(): Promise<WooProduct[]> {
  */
 export async function getProductsByCategory(categoryId: number): Promise<WooProduct[]> {
   try {
-    const { data } = await woo.get('products', { category: categoryId });
+    const { data } = await wcApi.get('products', { category: categoryId });
     return data;
   } catch (error) {
     console.error(`Failed to fetch products for category ${categoryId}:`, error);
