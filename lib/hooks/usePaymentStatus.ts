@@ -6,13 +6,13 @@ interface UsePaymentStatusOptions {
   enabled?: boolean;        // Start polling immediately (default: true)
   interval?: number;        // Polling interval in ms (default: 3000)
   timeout?: number;         // Stop after this many ms (default: 600000 = 10 min)
-  onSuccess?: (order: any) => void;  // Called when payment succeeds
-  onFailure?: (order: any) => void;  // Called when payment fails
+  onSuccess?: (order: unknown) => void;  // Called when payment succeeds
+  onFailure?: (order: unknown) => void;  // Called when payment fails
 }
 
 interface UsePaymentStatusReturn {
   status: PaymentStatus | null;
-  order: any | null;
+  order: unknown | null;
   isPolling: boolean;
   error: Error | null;
   startPolling: () => void;
@@ -46,7 +46,7 @@ export function usePaymentStatus({
   onFailure,
 }: UsePaymentStatusOptions): UsePaymentStatusReturn {
   const [status, setStatus] = useState<PaymentStatus | null>(null);
-  const [order, setOrder] = useState<any | null>(null);
+  const [order, setOrder] = useState<unknown | null>(null);
   const [isPolling, setIsPolling] = useState(false);
   const [error, setError] = useState<Error | null>(null);
 

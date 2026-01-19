@@ -1,13 +1,14 @@
 import WooCommerceRestApi from '@woocommerce/woocommerce-rest-api';
 import { mockWcApi } from './mockWooClient';
+import type { WooCommerceApiClient } from './types/woocommerce';
 
 // Use mock API if in development mode and USE_MOCK_API is set
 const USE_MOCK = process.env.USE_MOCK_API === 'true';
 
 // Lazy initialization to avoid SSR issues
-let realWcApiInstance: any = null;
+let realWcApiInstance: WooCommerceRestApi | null = null;
 
-function getRealWcApi() {
+function getRealWcApi(): WooCommerceRestApi | WooCommerceApiClient {
   if (!realWcApiInstance) {
     const url = process.env.WC_API_URL || process.env.WC_STORE_URL;
     const consumerKey = process.env.WC_CONSUMER_KEY;
@@ -59,31 +60,35 @@ async function retryWithBackoff<T>(
   maxRetries: number = 3,
   baseDelay: number = 1000
 ): Promise<T> {
-  let lastError: any;
+  let lastError: Error;
 
   for (let attempt = 0; attempt <= maxRetries; attempt++) {
     try {
       return await fn();
-    } catch (error: any) {
-      lastError = error;
+    } catch (error) {
+      const err = error as Error & {
+        code?: string;
+        response?: { status?: number }
+      };
+      lastError = err;
 
       // Check if it's a network error worth retrying
       const isNetworkError =
-        error.code === 'ECONNRESET' ||
-        error.code === 'ETIMEDOUT' ||
-        error.code === 'ENOTFOUND' ||
-        error.code === 'ECONNREFUSED' ||
-        error.message?.includes('socket hang up') ||
-        error.message?.includes('network') ||
-        (error.response?.status >= 500 && error.response?.status < 600); // Server errors
+        err.code === 'ECONNRESET' ||
+        err.code === 'ETIMEDOUT' ||
+        err.code === 'ENOTFOUND' ||
+        err.code === 'ECONNREFUSED' ||
+        err.message?.includes('socket hang up') ||
+        err.message?.includes('network') ||
+        (err.response?.status !== undefined && err.response.status >= 500 && err.response.status < 600); // Server errors
 
       if (!isNetworkError || attempt === maxRetries) {
-        throw error;
+        throw err;
       }
 
       // Calculate delay with exponential backoff
       const delay = baseDelay * Math.pow(2, attempt);
-      console.warn(`⚠️ WooCommerce API error (attempt ${attempt + 1}/${maxRetries + 1}): ${error.message || error.code}`);
+      console.warn(`⚠️ WooCommerce API error (attempt ${attempt + 1}/${maxRetries + 1}): ${err.message || err.code}`);
       console.warn(`   Retrying in ${delay}ms...`);
 
       await new Promise(resolve => setTimeout(resolve, delay));
@@ -96,15 +101,15 @@ async function retryWithBackoff<T>(
 /**
  * Wrap WooCommerce API with retry logic
  */
-function wrapWithRetry(getApi: () => any) {
+function wrapWithRetry(getApi: () => WooCommerceRestApi | WooCommerceApiClient): WooCommerceApiClient {
   return {
-    get: (endpoint: string, params?: any) =>
+    get: <T = unknown>(endpoint: string, params?: Record<string, unknown>) =>
       retryWithBackoff(() => getApi().get(endpoint, params)),
-    post: (endpoint: string, data: any) =>
+    post: <T = unknown>(endpoint: string, data: unknown) =>
       retryWithBackoff(() => getApi().post(endpoint, data)),
-    put: (endpoint: string, data: any) =>
+    put: <T = unknown>(endpoint: string, data: unknown) =>
       retryWithBackoff(() => getApi().put(endpoint, data)),
-    delete: (endpoint: string) =>
+    delete: <T = unknown>(endpoint: string) =>
       retryWithBackoff(() => getApi().delete(endpoint)),
   };
 }

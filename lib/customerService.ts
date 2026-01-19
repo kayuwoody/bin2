@@ -1,6 +1,7 @@
 // lib/customerService.ts
 import { wcApi } from './wooClient';
 import { v4 as uuidv4 } from 'uuid';
+import type { WooCustomer } from './types/woocommerce';
 
 export async function createOrFindWooCustomer({ name, email, phone, address }: {
   name?: string;
@@ -20,7 +21,7 @@ export async function createOrFindWooCustomer({ name, email, phone, address }: {
   }
 
   // If not found, create new WooCommerce customer
-  const payload: any = {
+  const payload = {
     email: email || `${uuidv4()}@placeholder.email`,
     first_name: name || '',
     billing: {
@@ -32,6 +33,6 @@ export async function createOrFindWooCustomer({ name, email, phone, address }: {
     ],
   };
 
-  const { data: newCustomer } = await wcApi.post('customers', payload);
+  const { data: newCustomer } = await wcApi.post<WooCustomer>('customers', payload);
   return { clientId, wooCustomerId: newCustomer.id };
 }

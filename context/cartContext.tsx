@@ -85,15 +85,18 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
         const parsed = JSON.parse(saved);
 
         // Migrate old cart items that don't have retailPrice/finalPrice
-        const migratedItems = parsed.map((item: any) => {
+        const migratedItems = (parsed as CartItem[]).map((item) => {
+          // Type guard for legacy items with 'price' field
+          const legacyItem = item as CartItem & { price?: string | number };
+
           // If item has old 'price' field but not 'retailPrice', migrate it
-          if (item.price !== undefined && item.retailPrice === undefined) {
+          if (legacyItem.price !== undefined && item.retailPrice === undefined) {
             console.log('🔄 Migrating old cart item:', item.name);
             return {
               productId: item.productId,
               name: item.name,
-              retailPrice: parseFloat(item.price),
-              finalPrice: parseFloat(item.price),
+              retailPrice: parseFloat(String(legacyItem.price)),
+              finalPrice: parseFloat(String(legacyItem.price)),
               quantity: item.quantity,
               discountPercent: undefined,
               discountAmount: undefined,

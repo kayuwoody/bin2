@@ -1,26 +1,24 @@
 import { wcApi } from './wooClient';
+import type {
+  WooOrder,
+  WooLineItem,
+  WooMeta,
+  WooBilling,
+  WooShipping,
+  WooOrderStatus
+} from './types/woocommerce';
 
 /* ------------------------------------------------------------------
- * Types (lightweight; extend if you want stricter typing)
+ * Types
  * ---------------------------------------------------------------- */
-export type WooMeta = { key: string; value: any };
-export type WooLineItem = {
-  product_id: number;
-  quantity: number;
-  variation_id?: number;
-  subtotal?: string;      // Line item subtotal (before tax)
-  total?: string;         // Line item total (after tax)
-  meta_data?: WooMeta[];  // Line item metadata (e.g., discount info)
-};
-export type WooOrder = any; // replace with full Woo order type if desired
 
 export interface NewOrderPayload {
   line_items: WooLineItem[];
   userId?: number;              // Woo customer_id if authenticated
   guestId?: string;             // anonymous session id (local)
-  status?: string;              // optional override (default Woo behavior)
-  billing?: Record<string, any>;
-  shipping?: Record<string, any>;
+  status?: WooOrderStatus;      // optional override (default Woo behavior)
+  billing?: WooBilling;
+  shipping?: WooShipping;
   meta_data?: WooMeta[];        // additional custom meta
 }
 
@@ -38,7 +36,7 @@ function buildCreatePayload(p: NewOrderPayload) {
     meta_data = [],
   } = p;
 
-  const payload: Record<string, any> = {
+  const payload: Partial<WooOrder> = {
     line_items,
   };
 
@@ -67,9 +65,10 @@ function buildMetaPatch(meta: WooMeta[] = []) {
   return { meta_data: meta };
 }
 
-function logWooErr(where: string, err: any) {
+function logWooErr(where: string, err: unknown) {
   // Woo errors often land in err.response.data
-  const detail = err?.response?.data ?? err;
+  const error = err as { response?: { data?: unknown } };
+  const detail = error?.response?.data ?? err;
   console.error(`❌ Woo error in ${where}:`, detail);
   return detail;
 }
@@ -80,9 +79,9 @@ function logWooErr(where: string, err: any) {
 export async function createWooOrder(payload: NewOrderPayload): Promise<WooOrder> {
   const wooPayload = buildCreatePayload(payload);
   try {
-    const { data } = (await wcApi.post('orders', wooPayload)) as { data: any };
+    const { data } = await wcApi.post<WooOrder>('orders', wooPayload);
     return data;
-  } catch (err: any) {
+  } catch (err) {
     throw logWooErr('createWooOrder', err);
   }
 }
@@ -92,9 +91,9 @@ export async function createWooOrder(payload: NewOrderPayload): Promise<WooOrder
  * ---------------------------------------------------------------- */
 export async function getWooOrder(id: number | string): Promise<WooOrder> {
   try {
-    const { data } = (await wcApi.get(`orders/${id}`)) as { data: any };
+    const { data } = await wcApi.get<WooOrder>(`orders/${id}`);
     return data;
-  } catch (err: any) {
+  } catch (err) {
     throw logWooErr('getWooOrder', err);
   }
 }
@@ -104,12 +103,12 @@ export async function getWooOrder(id: number | string): Promise<WooOrder> {
  * ---------------------------------------------------------------- */
 export async function updateWooOrder(
   id: number | string,
-  patch: Record<string, any>
+  patch: Partial<WooOrder>
 ): Promise<WooOrder> {
   try {
-    const { data } = (await wcApi.put(`orders/${id}`, patch)) as { data: any };
+    const { data } = await wcApi.put<WooOrder>(`orders/${id}`, patch);
     return data;
-  } catch (err: any) {
+  } catch (err) {
     throw logWooErr('updateWooOrder', err);
   }
 }
@@ -119,7 +118,7 @@ export async function updateWooOrder(
  * ---------------------------------------------------------------- */
 export async function setWooOrderStatus(
   id: number | string,
-  status: string
+  status: WooOrderStatus
 ): Promise<WooOrder> {
   return updateWooOrder(id, { status });
 }
@@ -136,7 +135,7 @@ export async function appendWooOrderMeta(
   // fetch current
   const current = await getWooOrder(id);
   const combined = [
-    ...(current?.meta_data?.map((m: any) => ({ key: m.key, value: m.value })) ?? []),
+    ...(current?.meta_data?.map((m) => ({ key: m.key, value: m.value })) ?? []),
     ...newMeta,
   ];
   return updateWooOrder(id, buildMetaPatch(combined));
@@ -150,7 +149,7 @@ export interface ReadyPayload {
   locker?: string;
   pickupCode?: string;
   qrUrl?: string;
-  status?: string; // default 'ready-to-pickup'
+  status?: WooOrderStatus; // default 'ready-to-pickup'
 }
 
 export async function markOrderReadyForPickup(
@@ -168,7 +167,7 @@ export async function markOrderReadyForPickup(
   // patch both status + meta
   const current = await getWooOrder(id);
   const combined = [
-    ...(current?.meta_data?.map((m: any) => ({ key: m.key, value: m.value })) ?? []),
+    ...(current?.meta_data?.map((m) => ({ key: m.key, value: m.value })) ?? []),
     ...meta,
   ];
 
@@ -182,7 +181,7 @@ export async function markOrderReadyForPickup(
  * LIST: logged-in Woo customer
  * ---------------------------------------------------------------- */
 export interface ListParams {
-  status?: string;  // comma-separated list or single
+  status?: WooOrderStatus | string;  // single status or comma-separated list
   per_page?: number;
   page?: number;
 }
@@ -191,7 +190,7 @@ export async function listOrdersByUser(
   userId: number,
   { status, per_page = 50, page = 1 }: ListParams = {}
 ): Promise<WooOrder[]> {
-  const params: Record<string, any> = {
+  const params: Record<string, string | number> = {
     customer: userId,
     per_page,
     page,
@@ -199,9 +198,9 @@ export async function listOrdersByUser(
   if (status) params.status = status;
 
   try {
-    const { data } = (await wcApi.get('orders', params)) as { data: any };
+    const { data } = await wcApi.get<WooOrder[]>('orders', params);
     return Array.isArray(data) ? data : [];
-  } catch (err: any) {
+  } catch (err) {
     throw logWooErr('listOrdersByUser', err);
   }
 }
@@ -213,7 +212,7 @@ export async function listOrdersByGuest(
   guestId: string,
   { status, per_page = 50, page = 1 }: ListParams = {}
 ): Promise<WooOrder[]> {
-  const params: Record<string, any> = {
+  const params: Record<string, string | number> = {
     meta_key: 'guestId',
     meta_value: guestId,
     per_page,
@@ -222,9 +221,9 @@ export async function listOrdersByGuest(
   if (status) params.status = status;
 
   try {
-    const { data } = (await wcApi.get('orders', params)) as { data: any };
+    const { data } = await wcApi.get<WooOrder[]>('orders', params);
     return Array.isArray(data) ? data : [];
-  } catch (err: any) {
+  } catch (err) {
     throw logWooErr('listOrdersByGuest', err);
   }
 }
