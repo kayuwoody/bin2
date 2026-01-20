@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { getWooOrder, updateWooOrder } from '@/lib/orderService';
 import { handleApiError, validationError } from '@/lib/api/error-handler';
+import type { WooLineItem } from '@/lib/types/woocommerce';
 
 /**
  * PATCH /api/orders/[orderId]/update-items
@@ -29,42 +30,55 @@ export async function PATCH(
       return validationError('Can only update pending orders', '/api/orders/[orderId]/update-items');
     }
 
+    // Type for incoming cart items
+    interface CartItem {
+      product_id: number;
+      quantity: number;
+      name?: string;
+      meta_data?: Array<{ key: string; value: string }>;
+    }
+
     // 3. Match cart items to existing line_items by product_id
     // This prevents duplicates by preserving WooCommerce line item IDs
-    const mergedLineItems = line_items.map((cartItem: any) => {
+    const mergedLineItems: WooLineItem[] = (line_items as CartItem[]).map((cartItem) => {
       // Find existing line item with same product_id
       const existingItem = existing.line_items?.find(
-        (li: any) => li.product_id === cartItem.product_id
+        (li) => li.product_id === cartItem.product_id
       );
 
       // If found, update quantity and keep the id
       if (existingItem) {
         return {
-          id: existingItem.id,  // CRITICAL: include id to UPDATE, not ADD
+          id: existingItem.id,
           product_id: cartItem.product_id,
-          quantity: cartItem.quantity
+          quantity: cartItem.quantity,
+          name: cartItem.name,
+          meta_data: cartItem.meta_data,
         };
       }
 
       // New item, no id needed
       return {
         product_id: cartItem.product_id,
-        quantity: cartItem.quantity
+        quantity: cartItem.quantity,
+        name: cartItem.name,
+        meta_data: cartItem.meta_data,
       };
     });
 
     // 4. Remove items that are no longer in cart
     // Mark removed items with quantity: 0
-    const removedItems = existing.line_items
-      ?.filter((existingItem: any) =>
-        !line_items.some((cartItem: any) => cartItem.product_id === existingItem.product_id)
+    const removedItems: WooLineItem[] = existing.line_items
+      ?.filter((existingItem) =>
+        !line_items.some((cartItem: CartItem) => cartItem.product_id === existingItem.product_id)
       )
-      .map((item: any) => ({
+      .map((item) => ({
         id: item.id,
-        quantity: 0  // Setting quantity to 0 removes the item
+        product_id: item.product_id, // Include product_id for type safety
+        quantity: 0,  // Setting quantity to 0 removes the item
       })) || [];
 
-    const finalLineItems = [...mergedLineItems, ...removedItems];
+    const finalLineItems: WooLineItem[] = [...mergedLineItems, ...removedItems];
 
     console.log(`🔄 Updating order #${orderId}:`, {
       cartItems: line_items.length,
