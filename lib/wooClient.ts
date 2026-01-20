@@ -1,6 +1,6 @@
 import WooCommerceRestApi from '@woocommerce/woocommerce-rest-api';
 import { mockWcApi } from './mockWooClient';
-import type { WooCommerceApiClient } from './types/woocommerce';
+import type { WooCommerceApiClient, WooApiResponseFormat } from './types/woocommerce';
 
 // Use mock API if in development mode and USE_MOCK_API is set
 const USE_MOCK = process.env.USE_MOCK_API === 'true';
@@ -104,13 +104,13 @@ async function retryWithBackoff<T>(
 function wrapWithRetry(getApi: () => WooCommerceRestApi | WooCommerceApiClient): WooCommerceApiClient {
   return {
     get: <T = unknown>(endpoint: string, params?: Record<string, unknown>) =>
-      retryWithBackoff(() => getApi().get(endpoint, params)),
+      retryWithBackoff(() => getApi().get(endpoint, params)) as Promise<WooApiResponseFormat<T>>,
     post: <T = unknown>(endpoint: string, data: unknown) =>
-      retryWithBackoff(() => getApi().post(endpoint, data)),
+      retryWithBackoff(() => getApi().post(endpoint, data)) as Promise<WooApiResponseFormat<T>>,
     put: <T = unknown>(endpoint: string, data: unknown) =>
-      retryWithBackoff(() => getApi().put(endpoint, data)),
+      retryWithBackoff(() => getApi().put(endpoint, data)) as Promise<WooApiResponseFormat<T>>,
     delete: <T = unknown>(endpoint: string) =>
-      retryWithBackoff(() => getApi().delete(endpoint)),
+      retryWithBackoff(() => getApi().delete(endpoint)) as Promise<WooApiResponseFormat<T>>,
   };
 }
 

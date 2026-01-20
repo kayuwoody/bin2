@@ -279,14 +279,25 @@ export interface WooApiError {
 }
 
 // ============================================================================
+// API Response Format
+// ============================================================================
+
+export interface WooApiResponseFormat<T> {
+  data: T;
+  status: number;
+  statusText: string;
+  headers: Record<string, string>;
+}
+
+// ============================================================================
 // API Client Interface
 // ============================================================================
 
 export interface WooCommerceApiClient {
-  get<T = unknown>(endpoint: string, params?: Record<string, unknown>): Promise<WooApiResponse<T>>;
-  post<T = unknown>(endpoint: string, data: unknown): Promise<WooApiResponse<T>>;
-  put<T = unknown>(endpoint: string, data: unknown): Promise<WooApiResponse<T>>;
-  delete<T = unknown>(endpoint: string): Promise<WooApiResponse<T>>;
+  get<T = unknown>(endpoint: string, params?: Record<string, unknown>): Promise<WooApiResponseFormat<T>>;
+  post<T = unknown>(endpoint: string, data: unknown): Promise<WooApiResponseFormat<T>>;
+  put<T = unknown>(endpoint: string, data: unknown): Promise<WooApiResponseFormat<T>>;
+  delete<T = unknown>(endpoint: string): Promise<WooApiResponseFormat<T>>;
 }
 
 // ============================================================================
