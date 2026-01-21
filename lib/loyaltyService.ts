@@ -45,7 +45,7 @@ export async function getCustomerPoints(userId: number): Promise<LoyaltyPoints> 
 
     console.log(`🔍 [getCustomerPoints] Found loyalty meta:`, {
       pointsMeta: pointsMeta ? { key: pointsMeta.key, value: pointsMeta.value } : null,
-      historyMeta: historyMeta ? { key: historyMeta.key, valueLength: historyMeta.value?.length } : null
+      historyMeta: historyMeta ? { key: historyMeta.key, valueLength: typeof historyMeta.value === 'string' ? historyMeta.value.length : 0 } : null
     });
 
     const pointsBalance = pointsMeta?.value || 0;
