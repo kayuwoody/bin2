@@ -148,7 +148,7 @@ export async function awardPoints(
 
     // CRITICAL: Re-fetch customer to verify WooCommerce actually saved it
     console.log(`🔍 [awardPoints] Re-fetching customer to verify save...`);
-    const { data: verifyCustomer } = await wcApi.get<WooCustomer>(`customers/${userId}`);
+    const { data: verifyCustomer } = await wcApi.get<WooCustomer>(`customers/${userId}`) as { data: WooCustomer };
     const actualPoints = verifyCustomer.meta_data?.find((m) => m.key === 'loyalty_points')?.value;
     console.log(`🔍 [awardPoints] ACTUAL points in database:`, actualPoints);
 
@@ -214,9 +214,9 @@ export async function redeemPoints(
       { key: 'loyalty_history', value: JSON.stringify(newHistory) }
     ];
 
-    await wcApi.put(`customers/${userId}`, {
+    await wcApi.put<WooCustomer>(`customers/${userId}`, {
       meta_data: updatedMeta
-    }) as unknown;
+    }) as { data: WooCustomer };
 
     console.log(`✅ Redeemed ${amount} points from customer #${userId}: ${reason}`);
 

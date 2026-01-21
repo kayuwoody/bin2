@@ -79,7 +79,7 @@ function logWooErr(where: string, err: unknown) {
 export async function createWooOrder(payload: NewOrderPayload): Promise<WooOrder> {
   const wooPayload = buildCreatePayload(payload);
   try {
-    const { data } = await wcApi.post<WooOrder>('orders', wooPayload);
+    const { data } = await wcApi.post<WooOrder>('orders', wooPayload) as { data: WooOrder };
     return data;
   } catch (err) {
     throw logWooErr('createWooOrder', err);
@@ -91,7 +91,7 @@ export async function createWooOrder(payload: NewOrderPayload): Promise<WooOrder
  * ---------------------------------------------------------------- */
 export async function getWooOrder(id: number | string): Promise<WooOrder> {
   try {
-    const { data } = await wcApi.get<WooOrder>(`orders/${id}`);
+    const { data } = await wcApi.get<WooOrder>(`orders/${id}`) as { data: WooOrder };
     return data;
   } catch (err) {
     throw logWooErr('getWooOrder', err);
@@ -106,7 +106,7 @@ export async function updateWooOrder(
   patch: Partial<WooOrder>
 ): Promise<WooOrder> {
   try {
-    const { data } = await wcApi.put<WooOrder>(`orders/${id}`, patch);
+    const { data } = await wcApi.put<WooOrder>(`orders/${id}`, patch) as { data: WooOrder };
     return data;
   } catch (err) {
     throw logWooErr('updateWooOrder', err);
@@ -198,7 +198,7 @@ export async function listOrdersByUser(
   if (status) params.status = status;
 
   try {
-    const { data } = await wcApi.get<WooOrder[]>('orders', params);
+    const { data } = await wcApi.get<WooOrder[]>('orders', params) as { data: WooOrder[] };
     return Array.isArray(data) ? data : [];
   } catch (err) {
     throw logWooErr('listOrdersByUser', err);
@@ -221,7 +221,7 @@ export async function listOrdersByGuest(
   if (status) params.status = status;
 
   try {
-    const { data } = await wcApi.get<WooOrder[]>('orders', params);
+    const { data } = await wcApi.get<WooOrder[]>('orders', params) as { data: WooOrder[] };
     return Array.isArray(data) ? data : [];
   } catch (err) {
     throw logWooErr('listOrdersByGuest', err);
