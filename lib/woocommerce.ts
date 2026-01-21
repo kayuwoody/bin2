@@ -1,4 +1,5 @@
 import { wcApi } from './wooClient';
+import type { WooProduct as WooCommerceProduct } from './types/woocommerce';
 
 export interface WooProduct {
   id: number;
@@ -15,8 +16,8 @@ export interface WooProduct {
  */
 export async function getProductById(id: string): Promise<WooProduct | null> {
   try {
-    const { data } = await wcApi.get(`products/${id}`);
-    return data;
+    const { data } = await wcApi.get<WooCommerceProduct>(`products/${id}`) as { data: WooCommerceProduct };
+    return data as WooProduct;
   } catch (error) {
     console.error(`Failed to fetch product ${id}:`, error);
     return null;
@@ -28,8 +29,8 @@ export async function getProductById(id: string): Promise<WooProduct | null> {
  */
 export async function getAllProducts(): Promise<WooProduct[]> {
   try {
-    const { data } = await wcApi.get('products');
-    return data;
+    const { data } = await wcApi.get<WooCommerceProduct[]>('products') as { data: WooCommerceProduct[] };
+    return data as WooProduct[];
   } catch (error) {
     console.error('Failed to fetch products:', error);
     return [];
@@ -41,8 +42,8 @@ export async function getAllProducts(): Promise<WooProduct[]> {
  */
 export async function getProductsByCategory(categoryId: number): Promise<WooProduct[]> {
   try {
-    const { data } = await wcApi.get('products', { category: categoryId });
-    return data;
+    const { data } = await wcApi.get<WooCommerceProduct[]>('products', { category: categoryId }) as { data: WooCommerceProduct[] };
+    return data as WooProduct[];
   } catch (error) {
     console.error(`Failed to fetch products for category ${categoryId}:`, error);
     return [];
