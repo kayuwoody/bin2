@@ -13,7 +13,7 @@ export async function createOrFindWooCustomer({ name, email, phone, address }: {
 
   // Try to find an existing customer
   const queryParam = email ? `email=${email}` : `role=all&search=${phone}`;
-  const { data: existing } = await wcApi.get(`customers?${queryParam}`);
+  const { data: existing } = await wcApi.get<WooCustomer[]>(`customers?${queryParam}`) as { data: WooCustomer[] };
 
   if (existing && existing.length > 0) {
     const customer = existing[0];
@@ -33,6 +33,6 @@ export async function createOrFindWooCustomer({ name, email, phone, address }: {
     ],
   };
 
-  const { data: newCustomer } = await wcApi.post<WooCustomer>('customers', payload);
+  const { data: newCustomer } = await wcApi.post<WooCustomer>('customers', payload) as { data: WooCustomer };
   return { clientId, wooCustomerId: newCustomer.id };
 }
