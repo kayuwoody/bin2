@@ -1,5 +1,5 @@
 import { wcApi } from './wooClient';
-import type { WooCustomer, WooMeta } from './types/woocommerce';
+import type { WooCustomer, WooMeta, WooApiResponseFormat } from './types/woocommerce';
 
 /**
  * Loyalty Points Service
@@ -138,7 +138,7 @@ export async function awardPoints(
     console.log(`🔍 [awardPoints] Sending PUT request to WooCommerce...`);
     const updateResponse = await wcApi.put<WooCustomer>(`customers/${userId}`, {
       meta_data: updatedMeta
-    });
+    }) as WooApiResponseFormat<WooCustomer>;
     console.log(`🔍 [awardPoints] WooCommerce PUT response status:`, updateResponse.status);
     console.log(`🔍 [awardPoints] Updated customer meta_data count:`, updateResponse.data?.meta_data?.length || 0);
 
