@@ -127,9 +127,12 @@ export async function awardPoints(
       { key: 'loyalty_history', value: JSON.stringify(newHistory) }
     ];
     console.log(`🔍 [awardPoints] Updated meta (with new loyalty data):`, updatedMeta.length);
+    const historyMetaForLog = updatedMeta.find(m => m.key === 'loyalty_history');
     console.log(`🔍 [awardPoints] New loyalty meta:`, {
       points: updatedMeta.find(m => m.key === 'loyalty_points'),
-      historyLength: JSON.parse(updatedMeta.find(m => m.key === 'loyalty_history')?.value || '[]').length
+      historyLength: historyMetaForLog && typeof historyMetaForLog.value === 'string'
+        ? JSON.parse(historyMetaForLog.value).length
+        : 0
     });
 
     console.log(`🔍 [awardPoints] Sending PUT request to WooCommerce...`);
