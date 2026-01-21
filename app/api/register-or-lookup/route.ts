@@ -15,7 +15,7 @@ export async function POST(req: NextRequest) {
 
     // Lookup existing customer in WooCommerce
     const searchQuery = email ? `email=${email}` : `search=${phone}`;
-    const { data: existing } = await wcApi.get<WooCustomer[]>(`customers?${searchQuery}`);
+    const { data: existing } = await wcApi.get<WooCustomer[]>(`customers?${searchQuery}`) as { data: WooCustomer[] };
 
     let wooCustomerId: number | null = null;
 
@@ -30,7 +30,7 @@ export async function POST(req: NextRequest) {
           address_1: address,
           first_name: name,
         },
-      });
+      }) as { data: WooCustomer };
       wooCustomerId = created.id;
     }
 
