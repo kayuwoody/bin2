@@ -19,10 +19,12 @@ export class FiuuService {
     this.merchantID = merchantID;
     this.verifyKey = verifyKey;
     this.secretKey = secretKey;
-    // Use sandbox URL for development, production URL for live
+    // Use Razer Merchant Services URLs (Fiuu was acquired by Razer)
+    // Sandbox: https://sandbox.merchant.razer.com
+    // Production: https://pay.merchant.razer.com
     this.baseURL = sandboxMode
-      ? "https://sandbox-payment.fiuu.com"
-      : "https://pay.fiuu.com";
+      ? "https://sandbox.merchant.razer.com"
+      : "https://pay.merchant.razer.com";
   }
 
   /**
