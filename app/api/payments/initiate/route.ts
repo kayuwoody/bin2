@@ -5,7 +5,7 @@ import { handleApiError, validationError } from '@/lib/api/error-handler';
 /**
  * POST /api/payments/initiate
  * Generate Fiuu payment URL for customer redirect
- */
+ 
 export async function POST(req: Request) {
   try {
     const body = await req.json();
@@ -39,7 +39,7 @@ export async function POST(req: Request) {
       orderID: String(orderID),
       amount: String(amount),
       currency,
-      channel: paymentMethod,
+      paymentMethod,
       returnURL: `${appURL}/api/payments/return`,
       notifyURL: `${appURL}/api/payments/notify`,
       callbackURL: `${appURL}/api/payments/callback`,
@@ -57,6 +57,33 @@ export async function POST(req: Request) {
       orderID,
       amount,
       currency,
+    });
+  } catch (error) {
+    return handleApiError(error, '/api/payments/initiate');
+  }
+}
+*/
+// /api/payments/initiate/route.ts
+import crypto from 'crypto';
+
+export async function POST(req: Request) {
+  try {
+    const body = await req.json();
+    const { orderID, amount } = body;
+
+    const merchantID = process.env.FIUU_MERCHANT_ID; // e.g., SB_coffeeoasis
+    const verifyKey = process.env.FIUU_VERIFY_KEY;   // Your Sandbox Verify Key
+
+    // Seamless vcode formula: md5(amount + merchantID + orderID + verifyKey)
+    const rawString = `${amount}${merchantID}${orderID}${verifyKey}`;
+    const vcode = crypto.createHash('md5').update(rawString).digest('hex');
+
+    return NextResponse.json({
+      success: true,
+      vcode,
+      merchantID,
+      orderID,
+      amount
     });
   } catch (error) {
     return handleApiError(error, '/api/payments/initiate');
