@@ -39,7 +39,7 @@ export async function POST(req: Request) {
       orderID: String(orderID),
       amount: String(amount),
       currency,
-      paymentMethod,
+      channel: paymentMethod,
       returnURL: `${appURL}/api/payments/return`,
       notifyURL: `${appURL}/api/payments/notify`,
       callbackURL: `${appURL}/api/payments/callback`,
@@ -62,3 +62,4 @@ export async function POST(req: Request) {
     return handleApiError(error, '/api/payments/initiate');
   }
 }
+
