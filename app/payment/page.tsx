@@ -49,22 +49,25 @@ function PaymentContent() {
   }
 
   return (
-    <div className="flex flex-col items-center justify-center min-h-[50vh] p-4 text-center">
-      {/* 1. Required Dependencies */}
+    <div className="flex flex-col items-center p-10">
+      {/* 1. Load jQuery with strict serial handling */}
       <Script 
-        src="https://releases.jquery.com/"
+        src="https://code.jquery.com/jquery-3.7.1.min.js" 
         strategy="beforeInteractive" 
       />
 
-      {/* 2. The Pinned Seamless Script */}
+      {/* 2. ONLY LOAD FIUU AFTER JQUERY IS DEFINITELY ON WINDOW */}
       <Script 
-        src="https://sandbox-payment.fiuu.com/RMS/API/seamless/3.28/js/MOLPay_seamless.deco.js" 
+        src={FIUU_SCRIPT_URL} 
         strategy="afterInteractive"
         onLoad={() => {
           console.log("✅ Fiuu Script Loaded");
-          setIsReady(true);
+          // Re-verify jQuery one last time before enabling button
+          if (window.jQuery) {
+            setIsReady(true);
+          }
         }}
-      />
+        />
 
       <h1 className="text-xl font-bold mb-4">Complete Your Payment</h1>
       
@@ -100,4 +103,5 @@ declare global {
     FiuuSeamless: any;
   }
 }
+
 
