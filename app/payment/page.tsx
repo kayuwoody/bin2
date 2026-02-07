@@ -11,7 +11,7 @@ function PaymentContent() {
   const vcode = searchParams.get('vcode'); // You still need this for security
   const orderID = searchParams.get('orderID');
   const amount = searchParams.get('amount');
-  const FIUU_SCRIPT_UR = "https://sandbox-payment.fiuu.com/RMS/API/seamless/3.28/js/MOLPay_seamless.deco.js"
+  const FIUU_SCRIPT_URL = "https://sandbox-payment.fiuu.com/RMS/API/seamless/3.28/js/MOLPay_seamless.deco.js"
 
   // TRIGGER FUNCTION: This follows Fiuu Support's exact Step 3
   const handlePayment = () => {
@@ -104,6 +104,7 @@ declare global {
     FiuuSeamless: any;
   }
 }
+
 
 
 
