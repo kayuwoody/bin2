@@ -38,7 +38,7 @@ function PaymentContent() {
     if (window.jQuery && (window.jQuery.fn as any).MOLPaySeamless) {
       const options = {
         mpsmerchantid: MERCHANT_ID,
-        mpschannel: "credit", // FORCES CREDIT CARD CHANNEL
+        mpschannel: "maybank2u", // FORCES CREDIT CARD CHANNEL
         mpsamount: amount,
         mpsorderid: orderID,
         mpsvcode: vcode,
@@ -95,3 +95,4 @@ declare global {
     jQuery: any;
   }
 }
+
