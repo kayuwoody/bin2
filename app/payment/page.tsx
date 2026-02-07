@@ -24,6 +24,7 @@ function PaymentContent() {
         amount: amount,
         orderId: orderID,
         vcode: vcode, // Signature generated from your backend
+        paymentMethod: "credit", 
         currency: "MYR",
         billName: "Coffee Oasis Customer",
         billEmail: "customer@coffee-oasis.com.my",
@@ -51,7 +52,7 @@ function PaymentContent() {
     <div className="flex flex-col items-center justify-center min-h-[50vh] p-4 text-center">
       {/* 1. Required Dependencies */}
       <Script 
-        src="https://code.jquery.com" 
+        src="https://releases.jquery.com/"
         strategy="beforeInteractive" 
       />
 
@@ -99,3 +100,4 @@ declare global {
     FiuuSeamless: any;
   }
 }
+
