@@ -399,6 +399,12 @@ function PaymentContent() {
   const amount = searchParams.get('amount');
   const merchantID = "SB_coffeeoasisplt"; // Ensure this matches your Sandbox ID
 
+    useEffect(() => {
+    if (typeof window !== 'undefined' && (window as any).MOLPaySeamless) {
+      (window as any).MOLPaySeamless.init();
+    }
+  }, [vcode]);
+  
   if (!vcode || !orderID || !amount) {
     return (
       <div className="p-8 text-center">
@@ -408,12 +414,26 @@ function PaymentContent() {
   }
 
   return (
-    <div className="flex flex-col items-center justify-center min-h-[50vh] p-4">
-      <h1 className="text-2xl font-bold mb-6">Finalize Your Payment</h1>
-      
-      <div className="bg-white p-6 rounded-lg shadow-md w-full max-w-md border">
+    <div className="bg-white p-6 rounded-lg shadow-md w-full max-w-md border">
         <p className="mb-2"><strong>Order ID:</strong> #{orderID}</p>
         <p className="mb-6"><strong>Amount:</strong> MYR {amount}</p>
+      {/* Load jQuery FIRST */}
+      <Script 
+        src="https://code.jquery.com" 
+        strategy="beforeInteractive"
+      />
+
+      {/* Load MOLPay script only AFTER jQuery is ready */}
+      <Script 
+        src="https://sandbox.merchant.razer.com/MOLPay/API/seamless/latest/js/MOLPay_seamless.deco.js"
+        strategy="afterInteractive"
+        onLoad={() => {
+          console.log("Fiuu Seamless script loaded");
+          if ((window as any).MOLPaySeamless) (window as any).MOLPaySeamless.init();
+        }}
+      />
+          <div className="flex flex-col items-center justify-center min-h-[50vh] p-4">
+      <h1 className="text-2xl font-bold mb-6">Finalize Your Payment</h1>
 
         {/* 
           IMPORTANT: data-mpschannel="credit" is what 
@@ -431,19 +451,9 @@ function PaymentContent() {
           data-mpsbill_name="Coffee Oasis Customer"
           className="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-4 rounded transition-colors"
         >
-          Pay with Credit Card
+         Pay MYR {amount} with Credit Card
         </button>
-      </div>
-  {/* 1. Load jQuery first */}
-  <Script 
-    src="https://code.jquery.com" 
-    strategy="beforeInteractive" 
-  />
-      {/* Load the 3.28 Sandbox Seamless Script */}
-      <Script 
-        src="https://sandbox.merchant.razer.com/MOLPay/API/seamless/latest/js/MOLPay_seamless.deco.js"
-        strategy="afterInteractive"
-      />
+             </div>
     </div>
   );
 }
@@ -456,5 +466,6 @@ export default function PaymentPage() {
     </Suspense>
   );
 }
+
 
 
