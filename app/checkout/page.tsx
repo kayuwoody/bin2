@@ -54,21 +54,42 @@ export default function CheckoutPage() {
   }
 */
 
-  async function handleConfirm() {
-  if (!cartItems.length) return;
+async function handleConfirm() {
+  try {
+    // 1. Call your initiate API
+    const response = await fetch('/api/payments/initiate', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        amount: totalAmount, // e.g. "1.00"
+        // Ensure you pass a unique orderID here if your API expects one
+        orderID: `ORD-${Date.now()}` 
+      })
+    });
 
-  const response = await fetch('/api/payments/initiate', {
-    method: 'POST',
-    body: JSON.stringify({ amount: finalTotal, items: cartItems })
-  });
-  
-  const data = await response.json();
-  
-  if (data.success) {
-    // Pass the vcode and orderID to the payment page via URL or State
-    router.push(`/payment?orderID=${data.orderID}&vcode=${data.vcode}&amount=${data.amount}`);
+    const data = await response.json();
+
+    // DEBUG: Check exactly what the server returned
+    console.log("Fiuu Initiate Response:", data);
+
+    // 2. CHECK: Only navigate if orderID is actually present in 'data'
+    if (data.success && data.orderID) {
+      const query = new URLSearchParams({
+        orderID: String(data.orderID),
+        vcode: String(data.vcode),
+        amount: String(data.amount)
+      }).toString();
+
+      router.push(`/payment?${query}`);
+    } else {
+      console.error("Failed to get orderID from API. Data received:", data);
+      alert("Payment initialization error. Check console.");
+    }
+  } catch (error) {
+    console.error("Network error during payment initiation:", error);
   }
 }
+
   function openDiscountModal(item: any, index: number) {
     setDiscountModal({
       isOpen: true,
