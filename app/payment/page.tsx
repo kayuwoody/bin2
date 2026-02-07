@@ -434,7 +434,11 @@ function PaymentContent() {
           Pay with Credit Card
         </button>
       </div>
-
+  {/* 1. Load jQuery first */}
+  <Script 
+    src="https://code.jquery.com" 
+    strategy="beforeInteractive" 
+  />
       {/* Load the 3.28 Sandbox Seamless Script */}
       <Script 
         src="https://sandbox.merchant.razer.com/MOLPay/API/seamless/latest/js/MOLPay_seamless.deco.js"
@@ -452,4 +456,5 @@ export default function PaymentPage() {
     </Suspense>
   );
 }
+
 
