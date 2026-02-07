@@ -2,7 +2,7 @@
 
 import { useSearchParams } from 'next/navigation';
 import Script from 'next/script';
-import { Suspense, useEffect, useState } from 'react';
+import { Suspense, useState } from 'react';
 
 function PaymentContent() {
   const searchParams = useSearchParams();
@@ -16,34 +16,13 @@ function PaymentContent() {
   const MERCHANT_ID = "SB_coffeeoasisplt";
   const FIUU_SCRIPT_URL = "https://sandbox.merchant.razer.com/MOLPay/API/seamless/latest/js/MOLPay_seamless.deco.js";
 
-  useEffect(() => {
-    // 1. Function to manually inject the Fiuu script
-    const loadFiuu = () => {
-      if (window.jQuery && !document.getElementById('fiuu-seamless-script')) {
-        const script = document.createElement('script');
-        script.id = 'fiuu-seamless-script';
-        script.src = FIUU_SCRIPT_URL;
-        script.async = true;
-        script.onload = () => {
-          if (window.MOLPaySeamless) {
-            window.MOLPaySeamless.init();
-          }
-          setIsReady(true); // Button turns blue here
-        };
-        document.body.appendChild(script);
-      }
-    };
-
-    // 2. Poll for jQuery
-    const interval = setInterval(() => {
-      if (window.jQuery) {
-        clearInterval(interval);
-        loadFiuu();
-      }
-    }, 100);
-
-    return () => clearInterval(interval);
-  }, [FIUU_SCRIPT_URL]);
+  const handleScriptReady = () => {
+    console.log("✅ Fiuu Script Loaded and jQuery is present");
+    if (window.MOLPaySeamless) {
+      window.MOLPaySeamless.init();
+      setIsReady(true);
+    }
+  };
 
   if (!vcode || !orderID || orderID === "undefined") {
     return <div className="p-10 text-center">Missing session data. Please restart checkout.</div>;
@@ -51,13 +30,20 @@ function PaymentContent() {
 
   return (
     <div className="flex flex-col items-center p-10">
-      {/* Load jQuery reliably */}
+      {/* 1. Load jQuery FIRST and block until ready */}
       <Script 
         src="https://code.jquery.com" 
         strategy="beforeInteractive" 
       />
 
-      <div className="bg-white p-6 rounded-lg shadow-md border text-center w-full max-w-md">
+      {/* 2. Load Fiuu ONLY after interaction is possible */}
+      <Script 
+        src={FIUU_SCRIPT_URL} 
+        strategy="afterInteractive"
+        onReady={handleScriptReady}
+      />
+
+      <div className="bg-white p-8 rounded-lg shadow-md border text-center w-full max-w-md">
         <h1 className="text-xl font-bold mb-4">Confirm Payment</h1>
         <p className="mb-6 text-gray-500">Order #{orderID}</p>
         
@@ -72,10 +58,10 @@ function PaymentContent() {
           data-mpscurrency="MYR"
           disabled={!isReady}
           className={`w-full font-bold py-3 px-6 rounded transition-all ${
-            isReady ? 'bg-blue-600 hover:bg-blue-700 text-white' : 'bg-gray-300 text-gray-500'
+            isReady ? 'bg-blue-600 hover:bg-blue-700 text-white cursor-pointer' : 'bg-gray-300 text-gray-500 cursor-not-allowed'
           }`}
         >
-          {isReady ? `Pay MYR ${amount} with Card` : "Connecting to Fiuu..."}
+          {isReady ? `Pay MYR ${amount} with Card` : "Initialising Gateway..."}
         </button>
       </div>
     </div>
