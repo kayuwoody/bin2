@@ -43,7 +43,7 @@ export default function CheckoutPage() {
   );
   const totalDiscount = retailTotal - finalTotal;
 
-  function handleConfirm() {
+/*  function handleConfirm() {
     if (!cartItems.length) {
       setError("Your cart is empty.");
       return;
@@ -52,7 +52,23 @@ export default function CheckoutPage() {
     // Navigate to payment page (cart stays intact)
     router.push("/payment");
   }
+*/
 
+  async function handleConfirm() {
+  if (!cartItems.length) return;
+
+  const response = await fetch('/api/payments/initiate', {
+    method: 'POST',
+    body: JSON.stringify({ amount: totalAmount, items: cartItems })
+  });
+  
+  const data = await response.json();
+  
+  if (data.success) {
+    // Pass the vcode and orderID to the payment page via URL or State
+    router.push(`/payment?orderID=${data.orderID}&vcode=${data.vcode}&amount=${data.amount}`);
+  }
+}
   function openDiscountModal(item: any, index: number) {
     setDiscountModal({
       isOpen: true,
