@@ -4,7 +4,6 @@ import { useSearchParams } from 'next/navigation';
 import Script from 'next/script';
 import { Suspense, useEffect, useState } from 'react';
 
-// 1. Component that uses the search params
 function PaymentContent() {
   const searchParams = useSearchParams();
   const [isReady, setIsReady] = useState(false);
@@ -13,57 +12,91 @@ function PaymentContent() {
   const orderID = searchParams.get('orderID');
   const amount = searchParams.get('amount');
   
-  // CONTEXT VALUES
+  // PINNED CONTEXT CONSTANTS
   const MERCHANT_ID = "SB_coffeeoasisplt";
-  // PLACEHOLDER: Paste your verified .js URL here
   const FIUU_SCRIPT_URL = "https://sandbox.merchant.razer.com/MOLPay/API/seamless/latest/js/MOLPay_seamless.deco.js";
 
   useEffect(() => {
-    if (typeof window !== 'undefined' && (window as any).MOLPaySeamless) {
-      (window as any).MOLPaySeamless.init();
-      setIsReady(true);
-    }
-  }, [vcode]);
+    // This function only runs once jQuery is detected
+    const injectFiuuScript = () => {
+      if (document.getElementById('fiuu-seamless-script')) return;
 
-  if (!vcode || !orderID) {
-    return <div className="p-10 text-center">Missing session data.</div>;
+      const script = document.createElement('script');
+      script.id = 'fiuu-seamless-script';
+      script.src = FIUU_SCRIPT_URL;
+      script.async = true;
+      
+      script.onload = () => {
+        console.log("✅ Fiuu Script Ready");
+        if (window.MOLPaySeamless) {
+          window.MOLPaySeamless.init();
+        }
+        setIsReady(true);
+      };
+
+      document.body.appendChild(script);
+    };
+
+    // Poll every 100ms to check if jQuery has loaded globally
+    const timer = setInterval(() => {
+      if (window.jQuery) {
+        clearInterval(timer);
+        injectFiuuScript();
+      }
+    }, 100);
+
+    return () => clearInterval(timer);
+  }, [FIUU_SCRIPT_URL]);
+
+  if (!vcode || !orderID || orderID === "undefined") {
+    return <div className="p-10 text-center">Error: Missing session data. Please restart checkout.</div>;
   }
 
   return (
-    <div className="flex flex-col items-center p-10">
+    <div className="flex flex-col items-center justify-center min-h-[50vh] p-4">
+      {/* Load jQuery with high priority */}
       <Script 
         src="https://code.jquery.com" 
         strategy="beforeInteractive" 
       />
-      <Script 
-        src={FIUU_SCRIPT_URL} 
-        strategy="afterInteractive" 
-        onLoad={() => setIsReady(true)}
-      />
 
-      <button
-        type="button"
-        data-toggle="molpayseamless"
-        data-mpsmerchantid={MERCHANT_ID}
-        data-mpschannel="credit"
-        data-mpsamount={amount}
-        data-mpsorderid={orderID}
-        data-mpsvcode={vcode}
-        data-mpscurrency="MYR"
-        disabled={!isReady}
-        className="bg-blue-600 text-white p-4 rounded font-bold"
-      >
-        {isReady ? `Pay MYR ${amount}` : "Loading..."}
-      </button>
+      <div className="bg-white p-8 rounded-xl shadow-lg w-full max-w-md border text-center">
+        <h1 className="text-xl font-bold mb-4">Finalize Payment</h1>
+        <p className="text-gray-500 mb-6">Order #{orderID}</p>
+
+        <button
+          type="button"
+          data-toggle="molpayseamless"
+          data-mpsmerchantid={MERCHANT_ID}
+          data-mpschannel="credit" // FORCES DIRECT CREDIT CARD CHANNEL
+          data-mpsamount={amount}
+          data-mpsorderid={orderID}
+          data-mpsvcode={vcode}
+          data-mpscurrency="MYR"
+          disabled={!isReady}
+          className={`w-full font-bold py-4 px-4 rounded-lg transition-all ${
+            isReady ? 'bg-blue-600 hover:bg-blue-700 text-white' : 'bg-gray-300 text-gray-500 cursor-not-allowed'
+          }`}
+        >
+          {isReady ? `Pay MYR ${amount} with Card` : "Initialising Gateway..."}
+        </button>
+      </div>
     </div>
   );
 }
 
-// 2. The DEFAULT EXPORT that Next.js requires
 export default function PaymentPage() {
   return (
     <Suspense fallback={<div>Loading Page...</div>}>
       <PaymentContent />
     </Suspense>
   );
+}
+
+// Global types for TypeScript
+declare global {
+  interface Window {
+    jQuery: any;
+    MOLPaySeamless: any;
+  }
 }
