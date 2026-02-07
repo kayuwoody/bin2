@@ -59,7 +59,7 @@ export default function CheckoutPage() {
 
   const response = await fetch('/api/payments/initiate', {
     method: 'POST',
-    body: JSON.stringify({ amount: totalAmount, items: cartItems })
+    body: JSON.stringify({ amount: finalAmount, items: cartItems })
   });
   
   const data = await response.json();
