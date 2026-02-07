@@ -1,85 +1,73 @@
 "use client";
 
 import { useSearchParams } from 'next/navigation';
-import { Suspense, useEffect, useState } from 'react';
+import { Suspense, useEffect, useRef } from 'react';
 
 function PaymentContent() {
   const searchParams = useSearchParams();
-  const [isReady, setIsReady] = useState(false);
-  
+  const formRef = useRef<HTMLFormElement>(null);
+
+  // Data from your successful /api/payments/initiate call
   const vcode = searchParams.get('vcode');
   const orderID = searchParams.get('orderID');
   const amount = searchParams.get('amount');
-  
-  // PINNED CONTEXT
-  const MERCHANT_ID = "SB_coffeeoasisplt";
-  const FIUU_SCRIPT_URL = "https://sandbox.merchant.razer.com/MOLPay/API/seamless/latest/js/MOLPay_seamless.deco.js";
 
+  // AUTO-SUBMIT: This triggers as soon as the page loads
   useEffect(() => {
-    // Polling as a fallback to see when the library actually attaches to window
-    const checkInterval = setInterval(() => {
-      if (typeof window !== 'undefined' && window.MOLPaySeamless) {
-        console.log("✅ MOLPaySeamless detected on window!");
-        window.MOLPaySeamless.init();
-        setIsReady(true);
-        clearInterval(checkInterval);
-      }
-    }, 500);
-
-    return () => clearInterval(checkInterval);
-  }, []);
+    if (vcode && orderID && formRef.current) {
+      console.log("🚀 Redirecting to Fiuu Direct Credit Card Channel...");
+      formRef.current.submit();
+    }
+  }, [vcode, orderID]);
 
   if (!vcode || !orderID || orderID === "undefined") {
-    return <div className="p-10 text-center">Missing session data.</div>;
+    return (
+      <div className="flex flex-col items-center justify-center min-h-[50vh] p-10">
+        <p className="text-red-500 font-bold text-center">
+          Error: Missing Payment Session. <br />
+          Please restart the checkout process.
+        </p>
+      </div>
+    );
   }
 
   return (
-    <div className="flex flex-col items-center p-10">
-      {/* 
-        FORCE SERIAL LOADING: 
-        We inject raw HTML to ensure the browser sees jQuery BEFORE the Razer Script.
-      */}
-      <div dangerouslySetInnerHTML={{ __html: `
-        <script src="https://code.jquery.com"></script>
-        <script src="${FIUU_SCRIPT_URL}"></script>
-      `}} />
+    <div className="flex flex-col items-center justify-center min-h-[60vh] p-4 text-center">
+      <h1 className="text-2xl font-bold mb-4">Redirecting...</h1>
+      <p className="text-gray-500 mb-8">Connecting to secure card payment gateway for Order #{orderID}</p>
 
-      <div className="bg-white p-8 rounded-lg shadow-md border text-center w-full max-w-md">
-        <h1 className="text-xl font-bold mb-4">Complete Payment</h1>
-        <p className="mb-6 text-gray-500">Order #{orderID}</p>
+      {/* 
+        DIRECT POST FORM:
+        The URL includes /credit to force the bypass.
+      */}
+      <form 
+        ref={formRef} 
+        method="POST" 
+        action="https://sandbox-payment.fiuu.com/RMS/pay/SB_coffeeoasisplt/credit"
+      >
+        <input type="hidden" name="amount" value={amount || ""} />
+        <input type="hidden" name="orderid" value={orderID || ""} />
+        <input type="hidden" name="bill_name" value="Coffee Oasis Customer" />
+        <input type="hidden" name="vcode" value={vcode || ""} />
+        <input type="hidden" name="currency" value="MYR" />
+        <input type="hidden" name="returnurl" value="https://app.coffee-oasis.com.my/api/payments/return" />
         
-        <button
-          type="button"
-          data-toggle="molpayseamless"
-          data-mpsmerchantid={MERCHANT_ID}
-          data-mpschannel="credit"
-          data-mpsamount={amount}
-          data-mpsorderid={orderID}
-          data-mpsvcode={vcode}
-          data-mpscurrency="MYR"
-          disabled={!isReady}
-          className={`w-full font-bold py-3 px-6 rounded transition-all ${
-            isReady ? 'bg-blue-600 hover:bg-blue-700 text-white cursor-pointer' : 'bg-gray-300 text-gray-500'
-          }`}
+        {/* Fallback button if auto-submit fails */}
+        <button 
+          type="submit"
+          className="bg-blue-600 text-white font-bold py-4 px-10 rounded-lg shadow-lg hover:bg-blue-700"
         >
-          {isReady ? `Pay MYR ${amount} with Card` : "Initialising Gateway..."}
+          Click here if not redirected
         </button>
-      </div>
+      </form>
     </div>
   );
 }
 
 export default function PaymentPage() {
   return (
-    <Suspense fallback={<div>Loading Page...</div>}>
+    <Suspense fallback={<div className="p-8 text-center">Initialising secure session...</div>}>
       <PaymentContent />
     </Suspense>
   );
-}
-
-declare global {
-  interface Window {
-    jQuery: any;
-    MOLPaySeamless: any;
-  }
 }
