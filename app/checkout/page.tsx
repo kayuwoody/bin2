@@ -61,7 +61,7 @@ async function handleConfirm() {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        amount: totalAmount, // e.g. "1.00"
+        amount: finalTotal, // e.g. "1.00"
         // Ensure you pass a unique orderID here if your API expects one
         orderID: `ORD-${Date.now()}` 
       })
