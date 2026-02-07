@@ -1,4 +1,4 @@
-"use client";
+/* "use client";
 
 import { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
@@ -381,5 +381,74 @@ export default function PaymentPage() {
         </button>
       </div>
     </div>
+  );
+}
+*/ 
+"use client";
+
+import { useSearchParams } from 'next/navigation';
+import Script from 'next/script';
+import { Suspense } from 'react';
+
+function PaymentContent() {
+  const searchParams = useSearchParams();
+  
+  // Get data passed from your initiate call
+  const vcode = searchParams.get('vcode');
+  const orderID = searchParams.get('orderID');
+  const amount = searchParams.get('amount');
+  const merchantID = "SB_coffeeoasisplt"; // Ensure this matches your Sandbox ID
+
+  if (!vcode || !orderID || !amount) {
+    return (
+      <div className="p-8 text-center">
+        <p className="text-red-500">Invalid session. Please return to checkout.</p>
+      </div>
+    );
+  }
+
+  return (
+    <div className="flex flex-col items-center justify-center min-h-[50vh] p-4">
+      <h1 className="text-2xl font-bold mb-6">Finalize Your Payment</h1>
+      
+      <div className="bg-white p-6 rounded-lg shadow-md w-full max-w-md border">
+        <p className="mb-2"><strong>Order ID:</strong> #{orderID}</p>
+        <p className="mb-6"><strong>Amount:</strong> MYR {amount}</p>
+
+        {/* 
+          IMPORTANT: data-mpschannel="credit" is what 
+          forces the direct Credit Card entry screen.
+        */}
+        <button
+          type="button"
+          data-toggle="molpayseamless"
+          data-mpsmerchantid={merchantID}
+          data-mpschannel="credit"
+          data-mpsamount={amount}
+          data-mpsorderid={orderID}
+          data-mpsvcode={vcode}
+          data-mpscurrency="MYR"
+          data-mpsbill_name="Coffee Oasis Customer"
+          className="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-4 rounded transition-colors"
+        >
+          Pay with Credit Card
+        </button>
+      </div>
+
+      {/* Load the 3.28 Sandbox Seamless Script */}
+      <Script 
+        src="https://sandbox.merchant.razer.com/MOLPay/API/seamless/latest/js/MOLPay_seamless.deco.js"
+        strategy="afterInteractive"
+      />
+    </div>
+  );
+}
+
+// Wrap in Suspense because we are using useSearchParams
+export default function PaymentPage() {
+  return (
+    <Suspense fallback={<div className="p-8 text-center">Loading payment gateway...</div>}>
+      <PaymentContent />
+    </Suspense>
   );
 }
