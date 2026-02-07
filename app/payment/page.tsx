@@ -267,25 +267,25 @@ export default function PaymentPage() {
         <div className="bg-white rounded-lg shadow-xl p-8 max-w-md w-full">
           <h2 className="text-2xl font-bold text-gray-900 mb-4 text-center">Scan QR Code to Pay</h2>
 
-          {/* Order Info */}
+          //* Order Info
           <div className="bg-gray-50 rounded-lg p-4 mb-6">
             <p className="text-sm text-gray-500 mb-1">Order #{order.id}</p>
             <p className="text-3xl font-bold text-gray-900">RM {finalTotal.toFixed(2)}</p>
           </div>
 
-          {/* QR Code Display */}
+        //* QR Code Display 
           <div ref={qrRef} className="bg-white p-6 rounded-lg border-2 border-gray-200 mb-6 flex justify-center">
             <QRCode value={qrData} size={256} />
           </div>
 
-          {/* Instructions */}
+          //* Instructions 
           <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6">
             <p className="text-sm text-blue-800">
               📱 Scan this QR code with your banking app to complete payment
             </p>
           </div>
 
-          {/* Action Buttons */}
+          //* Action Buttons
           <div className="space-y-3">
             <button
               onClick={downloadQRCode}
@@ -315,11 +315,11 @@ export default function PaymentPage() {
   return (
     <div className="min-h-screen bg-gray-100 flex items-center justify-center p-4">
       <div className="bg-white rounded-lg shadow-lg p-8 max-w-md w-full">
-        {/* Header */}
+        //* Header 
         <h1 className="text-2xl font-bold text-gray-900 mb-2">Select Payment Method</h1>
         <p className="text-gray-600 mb-6">How will the customer pay?</p>
 
-        {/* Order Summary */}
+        //* Order Summary 
         <div className="bg-gray-50 rounded-lg p-4 mb-6">
           <p className="text-sm text-gray-500 mb-1">Order Total</p>
           {hasDiscount && (
@@ -334,14 +334,14 @@ export default function PaymentPage() {
           <p className="text-sm text-gray-600 mt-2">{cartItems.length} item(s)</p>
         </div>
 
-        {/* Error Display */}
+        //* Error Display 
         {error && (
           <div className="bg-red-50 border border-red-200 rounded-lg p-4 mb-6">
             <p className="text-red-800 text-sm">{error}</p>
           </div>
         )}
 
-        {/* Payment Method Buttons */}
+        //* Payment Method Buttons 
         <div className="space-y-3">
           <button
             onClick={() => handlePaymentMethodSelect("bank_qr")}
@@ -372,7 +372,7 @@ export default function PaymentPage() {
           </button>
         </div>
 
-        {/* Back Button */}
+        //* Back Button 
         <button
           onClick={() => router.push("/checkout")}
           className="w-full mt-6 px-4 py-2 text-gray-600 hover:text-gray-800 transition-colors"
@@ -452,3 +452,4 @@ export default function PaymentPage() {
     </Suspense>
   );
 }
+
